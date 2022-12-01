@@ -1,8 +1,6 @@
 use std::fs;
 use std::time::Instant;
 
-// use aoc2022::utils;
-
 const PROBLEM_NAME: &str = "Calorie Counting";
 const PROBLEM_INPUT_FILE: &str = "./input/day01.txt";
 const PROBLEM_DAY: u64 = 1;
@@ -60,9 +58,12 @@ fn solve_part1(elf_packs: &Vec<Vec<u64>>) -> u64 {
     return elf_packs.iter().map(|x| x.iter().sum()).max().unwrap();
 }
 
-/// Solves AOC 2022 Day 1 Part 2 // ###
-fn solve_part2(_elf_packs: &Vec<Vec<u64>>) -> u64 {
-    return 0;
+/// Solves AOC 2022 Day 1 Part 2 // Returns the total calories for the elf packs with the top three
+/// calorie totals.
+fn solve_part2(elf_packs: &Vec<Vec<u64>>) -> u64 {
+    let mut sums = elf_packs.iter().map(|x| x.iter().sum()).collect::<Vec<u64>>();
+    sums.sort();
+    return sums.iter().rev().take(3).sum();
 }
 
 #[cfg(test)]
@@ -81,8 +82,7 @@ mod test {
     #[test]
     fn test_day01_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(210367, solution);
     }
 }
