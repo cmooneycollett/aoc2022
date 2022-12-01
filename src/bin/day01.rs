@@ -1,8 +1,7 @@
-#[path = "../lib.rs"]
-mod utils;
-
 use std::fs;
 use std::time::Instant;
+
+// use aoc2022::utils;
 
 const PROBLEM_NAME: &str = "!! SAVING CHRISTMAS !!";
 const PROBLEM_INPUT_FILE: &str = "./input/day01.txt";
