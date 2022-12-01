@@ -3,7 +3,7 @@ use std::time::Instant;
 
 // use aoc2022::utils;
 
-const PROBLEM_NAME: &str = "!! SAVING CHRISTMAS !!";
+const PROBLEM_NAME: &str = "Calorie Counting";
 const PROBLEM_INPUT_FILE: &str = "./input/day01.txt";
 const PROBLEM_DAY: u64 = 1;
 
@@ -37,22 +37,32 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 1 input file in the format required by the solver functions.
-/// Returned value is ###.
-fn process_input_file(filename: &str) -> String {
+/// Returned value is vector containing vectors with the calorie values for each elf.
+fn process_input_file(filename: &str) -> Vec<Vec<u64>> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    return raw_input.to_string();
+    let elf_splits = raw_input.split("\n\n");
+    let mut elf_packs: Vec<Vec<u64>> = vec![];
+    for elf_split in elf_splits {
+        let elf_calories = elf_split
+            .trim()
+            .split("\n")
+            .map(|x| x.trim().parse::<u64>().unwrap())
+            .collect::<Vec<u64>>();
+        elf_packs.push(elf_calories);
+    }
+    return elf_packs;
 }
 
-/// Solves AOC 2022 Day 1 Part 1 // ###
-fn solve_part1(_input: &String) -> String {
-    return String::from("-1");
+/// Solves AOC 2022 Day 1 Part 1 // Returns the maximum total calories across each of the elf packs.
+fn solve_part1(elf_packs: &Vec<Vec<u64>>) -> u64 {
+    return elf_packs.iter().map(|x| x.iter().sum()).max().unwrap();
 }
 
 /// Solves AOC 2022 Day 1 Part 2 // ###
-fn solve_part2(_input: &String) -> String {
-    return String::from("-2");
+fn solve_part2(_elf_packs: &Vec<Vec<u64>>) -> u64 {
+    return 0;
 }
 
 #[cfg(test)]
@@ -63,9 +73,8 @@ mod test {
     #[test]
     fn test_day01_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(72478, solution);
     }
 
     /// Tests the Day 1 Part 2 solver method against the actual problem solution.
