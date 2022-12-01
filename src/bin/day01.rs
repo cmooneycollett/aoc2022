@@ -45,23 +45,26 @@ fn process_input_file(filename: &str) -> Vec<Vec<u64>> {
     for elf_split in elf_splits {
         let elf_calories = elf_split
             .trim()
-            .split("\n")
+            .split('\n')
             .map(|x| x.trim().parse::<u64>().unwrap())
             .collect::<Vec<u64>>();
         elf_packs.push(elf_calories);
     }
-    return elf_packs;
+    elf_packs
 }
 
 /// Solves AOC 2022 Day 1 Part 1 // Returns the maximum total calories across each of the elf packs.
-fn solve_part1(elf_packs: &Vec<Vec<u64>>) -> u64 {
+fn solve_part1(elf_packs: &[Vec<u64>]) -> u64 {
     return elf_packs.iter().map(|x| x.iter().sum()).max().unwrap();
 }
 
 /// Solves AOC 2022 Day 1 Part 2 // Returns the total calories for the elf packs with the top three
 /// calorie totals.
-fn solve_part2(elf_packs: &Vec<Vec<u64>>) -> u64 {
-    let mut sums = elf_packs.iter().map(|x| x.iter().sum()).collect::<Vec<u64>>();
+fn solve_part2(elf_packs: &[Vec<u64>]) -> u64 {
+    let mut sums = elf_packs
+        .iter()
+        .map(|x| x.iter().sum())
+        .collect::<Vec<u64>>();
     sums.sort();
     return sums.iter().rev().take(3).sum();
 }
