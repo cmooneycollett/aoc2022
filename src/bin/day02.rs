@@ -35,7 +35,8 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 2 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is vector of tuples containing the shapes picked by the two players (other
+/// player and you).
 fn process_input_file(filename: &str) -> Vec<(char, char)> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
