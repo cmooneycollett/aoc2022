@@ -44,13 +44,16 @@ fn process_input_file(filename: &str) -> Vec<(char, char)> {
     let mut rounds: Vec<(char, char)> = vec![];
     for line in raw_input.lines() {
         let line = line.trim();
-        if line.len() == 0 {
+        if line.is_empty() {
             continue;
         }
-        let plays = line.split(" ").map(|x| x.chars().next().unwrap()).collect::<Vec<char>>();
+        let plays = line
+            .split(' ')
+            .map(|x| x.chars().next().unwrap())
+            .collect::<Vec<char>>();
         rounds.push((plays[0], plays[1]));
     }
-    return rounds;
+    rounds
 }
 
 /// Solves AOC 2022 Day 2 Part 1 // Returns the total score from playing the "rock paper scissors"
@@ -69,10 +72,10 @@ fn solve_part1(rounds: &Vec<(char, char)>) -> u64 {
             ('C', 'X') => 7, // win (6, 1)
             ('C', 'Y') => 2, // lose (0, 2)
             ('C', 'Z') => 6, // draw (3, 3)
-            _ => panic!("Day 2 Part 1 - bad round pattern!")
+            _ => panic!("Day 2 Part 1 - bad round pattern!"),
         }
     }
-    return total_score;
+    total_score
 }
 
 /// Solves AOC 2022 Day 2 Part 2 // Returns the total score from playing the "rock paper scissors"
@@ -91,10 +94,10 @@ fn solve_part2(rounds: &Vec<(char, char)>) -> u64 {
             ('C', 'X') => 2, // lose (0, 2)
             ('C', 'Y') => 6, // draw (3, 3)
             ('C', 'Z') => 7, // win (6, 1)
-            _ => panic!("Day 2 Part 2 - bad round pattern!")
+            _ => panic!("Day 2 Part 2 - bad round pattern!"),
         }
     }
-    return total_score;
+    total_score
 }
 
 #[cfg(test)]
