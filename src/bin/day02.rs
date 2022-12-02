@@ -35,43 +35,34 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 2 input file in the format required by the solver functions.
-/// Returned value is vector of tuples containing the shapes picked by the two players (other
-/// player and you).
-fn process_input_file(filename: &str) -> Vec<(char, char)> {
+/// Returned value is vector of strings extracted from the lines of the input file.
+fn process_input_file(filename: &str) -> Vec<String> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    let mut rounds: Vec<(char, char)> = vec![];
-    for line in raw_input.lines() {
-        let line = line.trim();
-        if line.is_empty() {
-            continue;
-        }
-        let plays = line
-            .split(' ')
-            .map(|x| x.chars().next().unwrap())
-            .collect::<Vec<char>>();
-        rounds.push((plays[0], plays[1]));
-    }
-    rounds
+    return raw_input
+        .trim()
+        .lines()
+        .map(|line| String::from(line.trim()))
+        .collect::<Vec<String>>();
 }
 
 /// Solves AOC 2022 Day 2 Part 1 // Returns the total score from playing the "rock paper scissors"
 /// game, assuming everything goes exactly according to the strategy guide.
-fn solve_part1(rounds: &Vec<(char, char)>) -> u64 {
+fn solve_part1(rounds: &[String]) -> u64 {
     let mut total_score = 0;
-    for round in rounds {
+    for line in rounds {
         // A / X: rock (1), B / Y: paper (2), C / Z: scissors (3), lose (0), draw (3), win (6)
-        total_score += match (round.0, round.1) {
-            ('A', 'X') => 4, // draw (3, 1)
-            ('A', 'Y') => 8, // win (6, 2)
-            ('A', 'Z') => 3, // lose (0, 3)
-            ('B', 'X') => 1, // lose (0, 1)
-            ('B', 'Y') => 5, // draw (3, 2)
-            ('B', 'Z') => 9, // win (6, 3)
-            ('C', 'X') => 7, // win (6, 1)
-            ('C', 'Y') => 2, // lose (0, 2)
-            ('C', 'Z') => 6, // draw (3, 3)
+        total_score += match line.as_str() {
+            "A X" => 4, // draw (3, 1)
+            "A Y" => 8, // win (6, 2)
+            "A Z" => 3, // lose (0, 3)
+            "B X" => 1, // lose (0, 1)
+            "B Y" => 5, // draw (3, 2)
+            "B Z" => 9, // win (6, 3)
+            "C X" => 7, // win (6, 1)
+            "C Y" => 2, // lose (0, 2)
+            "C Z" => 6, // draw (3, 3)
             _ => panic!("Day 2 Part 1 - bad round pattern!"),
         }
     }
@@ -80,20 +71,20 @@ fn solve_part1(rounds: &Vec<(char, char)>) -> u64 {
 
 /// Solves AOC 2022 Day 2 Part 2 // Returns the total score from playing the "rock paper scissors"
 /// game, with the second second shape representing the required outcome from the round.
-fn solve_part2(rounds: &Vec<(char, char)>) -> u64 {
+fn solve_part2(rounds: &[String]) -> u64 {
     let mut total_score = 0;
-    for round in rounds {
+    for line in rounds {
         // A: rock (1), B: paper (2), C: scissors (3), X: lose (0), Y: draw (3), Z: win (6)
-        total_score += match (round.0, round.1) {
-            ('A', 'X') => 3, // lose (0, 3)
-            ('A', 'Y') => 4, // draw (3, 1)
-            ('A', 'Z') => 8, // win (6, 2)
-            ('B', 'X') => 1, // lose (0, 1)
-            ('B', 'Y') => 5, // draw (3, 2)
-            ('B', 'Z') => 9, // win (6, 3)
-            ('C', 'X') => 2, // lose (0, 2)
-            ('C', 'Y') => 6, // draw (3, 3)
-            ('C', 'Z') => 7, // win (6, 1)
+        total_score += match line.as_str() {
+            "A X" => 3, // lose (0, 3)
+            "A Y" => 4, // draw (3, 1)
+            "A Z" => 8, // win (6, 2)
+            "B X" => 1, // lose (0, 1)
+            "B Y" => 5, // draw (3, 2)
+            "B Z" => 9, // win (6, 3)
+            "C X" => 2, // lose (0, 2)
+            "C Y" => 6, // draw (3, 3)
+            "C Z" => 7, // win (6, 1)
             _ => panic!("Day 2 Part 2 - bad round pattern!"),
         }
     }
