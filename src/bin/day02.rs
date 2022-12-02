@@ -90,7 +90,7 @@ fn solve_part2(rounds: &Vec<(char, char)>) -> u64 {
             ('C', 'X') => 2, // lose (0, 2)
             ('C', 'Y') => 6, // draw (3, 3)
             ('C', 'Z') => 7, // win (6, 1)
-            _ => panic!("Day 2 Part 1 - bad round pattern!")
+            _ => panic!("Day 2 Part 2 - bad round pattern!")
         }
     }
     return total_score;
