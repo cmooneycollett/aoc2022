@@ -57,25 +57,43 @@ fn process_input_file(filename: &str) -> Vec<(char, char)> {
 fn solve_part1(rounds: &Vec<(char, char)>) -> u64 {
     let mut total_score = 0;
     for round in rounds {
+        // A / X: rock (1), B / Y: paper (2), C / Z: scissors (3), lose (0), draw (3), win (6)
         total_score += match (round.0, round.1) {
-            ('A', 'X') => 4, // tie (3, 1)
+            ('A', 'X') => 4, // draw (3, 1)
             ('A', 'Y') => 8, // win (6, 2)
             ('A', 'Z') => 3, // lose (0, 3)
             ('B', 'X') => 1, // lose (0, 1)
-            ('B', 'Y') => 5, // tie (3, 2)
+            ('B', 'Y') => 5, // draw (3, 2)
             ('B', 'Z') => 9, // win (6, 3)
             ('C', 'X') => 7, // win (6, 1)
             ('C', 'Y') => 2, // lose (0, 2)
-            ('C', 'Z') => 6, // tie (3, 3)
+            ('C', 'Z') => 6, // draw (3, 3)
             _ => panic!("Day 2 Part 1 - bad round pattern!")
         }
     }
     return total_score;
 }
 
-/// Solves AOC 2022 Day 2 Part 2 // ###
-fn solve_part2(_rounds: &Vec<(char, char)>) -> u64 {
-    0
+/// Solves AOC 2022 Day 2 Part 2 // Returns the total score from playing the "rock paper scissors"
+/// game, with the second second shape representing the required outcome from the round.
+fn solve_part2(rounds: &Vec<(char, char)>) -> u64 {
+    let mut total_score = 0;
+    for round in rounds {
+        // A: rock (1), B: paper (2), C: scissors (3), X: lose (0), Y: draw (3), Z: win (6)
+        total_score += match (round.0, round.1) {
+            ('A', 'X') => 3, // lose (0, 3)
+            ('A', 'Y') => 4, // draw (3, 1)
+            ('A', 'Z') => 8, // win (6, 2)
+            ('B', 'X') => 1, // lose (0, 1)
+            ('B', 'Y') => 5, // draw (3, 2)
+            ('B', 'Z') => 9, // win (6, 3)
+            ('C', 'X') => 2, // lose (0, 2)
+            ('C', 'Y') => 6, // draw (3, 3)
+            ('C', 'Z') => 7, // win (6, 1)
+            _ => panic!("Day 2 Part 1 - bad round pattern!")
+        }
+    }
+    return total_score;
 }
 
 #[cfg(test)]
@@ -94,8 +112,7 @@ mod test {
     #[test]
     fn test_day02_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(12091, solution);
     }
 }
