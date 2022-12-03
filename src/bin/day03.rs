@@ -77,7 +77,7 @@ fn solve_part2(input: &[String]) -> u64 {
         // Intersection of first two sets
         let first_second = first
             .intersection(&second)
-            .map(|c| *c)
+            .copied()
             .collect::<HashSet<char>>();
         // Intersection of third set with first two sets
         let common_item = *first_second.intersection(&third).next().unwrap();
