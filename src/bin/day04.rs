@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use regex::Regex;
 
-const PROBLEM_NAME: &str = "!! SAVING CHRISTMAS !!";
+const PROBLEM_NAME: &str = "Camp Cleanup";
 const PROBLEM_INPUT_FILE: &str = "./input/day04.txt";
 const PROBLEM_DAY: u64 = 4;
 
