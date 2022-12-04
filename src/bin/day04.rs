@@ -94,7 +94,7 @@ fn check_for_whole_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
     if second_left <= first_left && second_right >= first_right {
         return true;
     }
-    return false;
+    false
 }
 
 /// Checks if there is a partial overlap between the ranges.
@@ -108,7 +108,7 @@ fn check_for_partial_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
     if second_left <= first_left && second_right >= first_left {
         return true;
     }
-    return false;
+    false
 }
 
 #[cfg(test)]
