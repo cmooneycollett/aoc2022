@@ -1,13 +1,11 @@
 use std::fs;
 use std::time::Instant;
 
-// use aoc2022::utils;
-
-const PROBLEM_NAME: &str = "!! SAVING CHRISTMAS !!";
+const PROBLEM_NAME: &str = "###";
 const PROBLEM_INPUT_FILE: &str = "./input/day00.txt";
 const PROBLEM_DAY: u64 = 0;
 
-/// Processes the AOC 2022 Day ## input file and solves both parts of the problem. Solutions are
+/// Processes the AOC 2022 Day 00 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
 pub fn main() {
     let start = Instant::now();
@@ -36,7 +34,7 @@ pub fn main() {
     println!("==================================================");
 }
 
-/// Processes the AOC 2022 Day ## input file in the format required by the solver functions.
+/// Processes the AOC 2022 Day 00 input file in the format required by the solver functions.
 /// Returned value is ###.
 fn process_input_file(filename: &str) -> String {
     // Read contents of problem input file
@@ -45,12 +43,12 @@ fn process_input_file(filename: &str) -> String {
     return raw_input.to_string();
 }
 
-/// Solves AOC 2022 Day ## Part 1 // ###
+/// Solves AOC 2022 Day 00 Part 1 // ###
 fn solve_part1(_input: &String) -> String {
     unimplemented!();
 }
 
-/// Solves AOC 2022 Day ## Part 2 // ###
+/// Solves AOC 2022 Day 00 Part 2 // ###
 fn solve_part2(_input: &String) -> String {
     unimplemented!();
 }
@@ -59,7 +57,7 @@ fn solve_part2(_input: &String) -> String {
 mod test {
     use super::*;
 
-    /// Tests the Day ## Part 1 solver method against the actual problem solution.
+    /// Tests the Day 00 Part 1 solver method against the actual problem solution.
     #[test]
     fn test_day00_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
@@ -68,7 +66,7 @@ mod test {
         // assert_eq!("###", solution);
     }
 
-    /// Tests the Day ## Part 2 solver method against the actual problem solution.
+    /// Tests the Day 00 Part 2 solver method against the actual problem solution.
     #[test]
     fn test_day00_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
