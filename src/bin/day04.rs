@@ -101,11 +101,17 @@ fn check_for_whole_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
 fn check_for_partial_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
     let (first_left, first_right, second_left, second_right) = range_pair;
     // Check if first range partially overlaps the second range (first range to left)
-    if first_left <= second_left && first_right >= second_left {
+    if first_left <= second_left && first_right >= second_left && first_right < second_right {
+        return true;
+    }
+    if first_left < second_left && first_right >= second_left && first_right <= second_right {
         return true;
     }
     // Check if second range partially overlaps the first range (second range to left)
-    if second_left <= first_left && second_right >= first_left {
+    if second_left <= first_left && second_right >= first_left && second_right < first_right {
+        return true;
+    }
+    if second_left < first_left && second_right >= first_left && second_right <= first_right {
         return true;
     }
     false
