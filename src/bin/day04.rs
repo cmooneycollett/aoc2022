@@ -37,7 +37,8 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 4 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is vector of four-tuples containing the lower and upper limits of the ranges
+/// specified in the lines of the input file.
 fn process_input_file(filename: &str) -> Vec<(u64, u64, u64, u64)> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
@@ -99,20 +100,30 @@ fn check_for_whole_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
 
 /// Checks if there is a partial overlap between the ranges.
 fn check_for_partial_overlap(range_pair: &(u64, u64, u64, u64)) -> bool {
+    // Calculate minimum length of range of the two ranges
     let (first_left, first_right, second_left, second_right) = range_pair;
-    // Check if first range partially overlaps the second range (first range to left)
-    if first_left <= second_left && first_right >= second_left && first_right < second_right {
-        return true;
+    let first_len = first_right - first_left + 1;
+    let second_len = second_right - second_left + 1;
+    let min_len = {
+        if first_len < second_len {
+            first_len
+        } else {
+            second_len
+        }
+    };
+    // First range is to left
+    if first_left < second_right && first_right >= second_left {
+        let overlap_len = first_right - second_left + 1;
+        if overlap_len < min_len {
+            return true;
+        }
     }
-    if first_left < second_left && first_right >= second_left && first_right <= second_right {
-        return true;
-    }
-    // Check if second range partially overlaps the first range (second range to left)
-    if second_left <= first_left && second_right >= first_left && second_right < first_right {
-        return true;
-    }
-    if second_left < first_left && second_right >= first_left && second_right <= first_right {
-        return true;
+    // Second range is to left
+    if second_left < first_right && second_right >= first_left {
+        let overlap_len = second_right - first_left + 1;
+        if overlap_len < min_len {
+            return true;
+        }
     }
     false
 }
