@@ -8,6 +8,9 @@ const PROBLEM_NAME: &str = "Supply Stacks";
 const PROBLEM_INPUT_FILE: &str = "./input/day05.txt";
 const PROBLEM_DAY: u64 = 5;
 
+/// Type defintion to simplify function signatures.
+type ProblemInput = (Vec<VecDeque<char>>, Vec<(usize, usize, usize)>);
+
 /// Processes the AOC 2022 Day 5 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
 pub fn main() {
@@ -37,9 +40,9 @@ pub fn main() {
     println!("==================================================");
 }
 
-/// Processes the AOC 2022 Day 5 input file in the format required by the solver functions.
-/// Returned value is ###.
-fn process_input_file(filename: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize, usize)>) {
+/// Processes the AOC 2022 Day 5 input file in the format required by the solver functions. Returned
+/// value is tuple containing the vectors of crate stacks and move instructions.
+fn process_input_file(filename: &str) -> ProblemInput {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Initialise the output structures
@@ -49,21 +52,31 @@ fn process_input_file(filename: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize
     }
     let mut move_instructions: Vec<(usize, usize, usize)> = vec![];
     // Create the regexes
-    let stack_regex = Regex::new(r"^(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(   |\[[A-Z]\])$").unwrap();
+    let stack_regex = Regex::new(concat!(
+        r#"^(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )"#,
+        r#"(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )(    |\[[A-Z]\] )"#,
+        r#"(   |\[[A-Z]\])$"#,
+    ))
+    .unwrap();
     let crate_regex = Regex::new(r"\[([A-Z])\]").unwrap();
     let move_regex = Regex::new(r"^move (\d+) from (\d+) to (\d+)$").unwrap();
     // Process the lines
     let mut line_count = 0;
     for line in raw_input.lines() {
         line_count += 1;
-        if line_count >= 1 && line_count <= 8 {
+        // Process crate stack lines
+        if (1..=8).contains(&line_count) {
             let captures = stack_regex.captures(line).unwrap();
             for i in 1..=9 {
                 if crate_regex.is_match(&captures[i]) {
-                    let c = crate_regex.captures(&captures[i]).unwrap()[1].chars().next().unwrap();
+                    let c = crate_regex.captures(&captures[i]).unwrap()[1]
+                        .chars()
+                        .next()
+                        .unwrap();
                     stacks[i - 1].push_front(c);
                 }
             }
+        // Process move instruction lines
         } else if line_count >= 11 {
             let line = line.trim();
             if line.is_empty() {
@@ -76,12 +89,12 @@ fn process_input_file(filename: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize
             move_instructions.push((quantity, from, to))
         }
     }
-    return (stacks, move_instructions);
+    (stacks, move_instructions)
 }
 
 /// Solves AOC 2022 Day 5 Part 1 // Returns the crates at the top of each stack after processing
 /// the movement instructions.
-fn solve_part1(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> String {
+fn solve_part1(input: &ProblemInput) -> String {
     let mut stacks = input.0.clone();
     // Move crates
     for (quantity, from, to) in input.1.iter() {
@@ -92,19 +105,20 @@ fn solve_part1(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> Str
     }
     // Construct the output string
     let mut output = String::new();
-    for i in 0..9 {
-        output.push(stacks[i].pop_back().unwrap());
+    for stack in stacks.iter_mut() {
+        output.push(stack.pop_back().unwrap());
     }
-    return output;
+    output
 }
 
 /// Solves AOC 2022 Day 5 Part 2 // Returns the crates at the top of each stack after processing
 /// the movement instructions, with the crane picking up and moving the crates at once rather than
 /// one-by-one.
-fn solve_part2(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> String {
+fn solve_part2(input: &ProblemInput) -> String {
     let mut stacks = input.0.clone();
     // Move crates
     for (quantity, from, to) in input.1.iter() {
+        // Pick up the stack of crates
         let mut move_queue = VecDeque::<char>::new();
         for _ in 0..*quantity {
             let c = stacks[*from].pop_back().unwrap();
@@ -116,10 +130,10 @@ fn solve_part2(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> Str
     }
     // Construct the output string
     let mut output = String::new();
-    for i in 0..9 {
-        output.push(stacks[i].pop_back().unwrap());
+    for stack in stacks.iter_mut() {
+        output.push(stack.pop_back().unwrap());
     }
-    return output;
+    output
 }
 
 #[cfg(test)]
