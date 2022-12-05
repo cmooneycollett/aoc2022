@@ -37,7 +37,8 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 4 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is vector of four-tuples containing the lower and upper limits of the ranges
+/// specified in the lines of the input file.
 fn process_input_file(filename: &str) -> Vec<(u64, u64, u64, u64)> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
