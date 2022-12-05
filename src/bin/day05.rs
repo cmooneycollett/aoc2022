@@ -83,22 +83,43 @@ fn process_input_file(filename: &str) -> (Vec<VecDeque<char>>, Vec<(usize, usize
 /// the movement instructions.
 fn solve_part1(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> String {
     let mut stacks = input.0.clone();
+    // Move crates
     for (quantity, from, to) in input.1.iter() {
         for _ in 0..*quantity {
             let c = stacks[*from].pop_back().unwrap();
             stacks[*to].push_back(c);
         }
     }
+    // Construct the output string
     let mut output = String::new();
     for i in 0..9 {
-        output.push(stacks[i].pop_back().unwrap())
+        output.push(stacks[i].pop_back().unwrap());
     }
     return output;
 }
 
-/// Solves AOC 2022 Day 5 Part 2 // ###
-fn solve_part2(_input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> usize {
-    0
+/// Solves AOC 2022 Day 5 Part 2 // Returns the crates at the top of each stack after processing
+/// the movement instructions, with the crane picking up and moving the crates at once rather than
+/// one-by-one.
+fn solve_part2(input: &(Vec<VecDeque<char>>, Vec<(usize, usize, usize)>)) -> String {
+    let mut stacks = input.0.clone();
+    // Move crates
+    for (quantity, from, to) in input.1.iter() {
+        let mut move_queue = VecDeque::<char>::new();
+        for _ in 0..*quantity {
+            let c = stacks[*from].pop_back().unwrap();
+            move_queue.push_front(c);
+        }
+        for _ in 0..*quantity {
+            stacks[*to].push_back(move_queue.pop_front().unwrap());
+        }
+    }
+    // Construct the output string
+    let mut output = String::new();
+    for i in 0..9 {
+        output.push(stacks[i].pop_back().unwrap());
+    }
+    return output;
 }
 
 #[cfg(test)]
@@ -117,8 +138,7 @@ mod test {
     #[test]
     fn test_day05_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!("TCGLQSLPW", solution);
     }
 }
