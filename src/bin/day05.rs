@@ -104,11 +104,7 @@ fn solve_part1(input: &ProblemInput) -> String {
         }
     }
     // Construct the output string
-    let mut output = String::new();
-    for stack in stacks.iter_mut() {
-        output.push(stack.pop_back().unwrap());
-    }
-    output
+    construct_output_string(&stacks)
 }
 
 /// Solves AOC 2022 Day 5 Part 2 // Returns the crates at the top of each stack after processing
@@ -124,14 +120,20 @@ fn solve_part2(input: &ProblemInput) -> String {
             let c = stacks[*from].pop_back().unwrap();
             move_queue.push_front(c);
         }
+        // Move the stack of crates to the new location
         for _ in 0..*quantity {
             stacks[*to].push_back(move_queue.pop_front().unwrap());
         }
     }
     // Construct the output string
+    construct_output_string(&stacks)
+}
+
+/// Creates the output string by joining together the last crate in each of the stacks.
+fn construct_output_string(stacks: &[VecDeque<char>]) -> String {
     let mut output = String::new();
-    for stack in stacks.iter_mut() {
-        output.push(stack.pop_back().unwrap());
+    for stack in stacks.iter() {
+        output.push(stack[stack.len() - 1]);
     }
     output
 }
