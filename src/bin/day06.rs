@@ -48,14 +48,8 @@ fn process_input_file(filename: &str) -> Vec<char> {
 /// before the first start-of-packet marker (four consecutive characters that are different) is
 /// observed.
 fn solve_part1(input: &[char]) -> usize {
-    for cursor in 0..(input.len() - 3) {
-        let mut window_set: HashSet<char> = HashSet::new();
-        for i in 0..4 {
-            window_set.insert(input[cursor + i]);
-        }
-        if window_set.len() == 4 {
-            return cursor + 4;
-        }
+    if let Some(index) = find_marker_index(input, 4) {
+        return index;
     }
     panic!("Day 6 Part 1 - did not first the start-of-packet marker!");
 }
@@ -64,16 +58,31 @@ fn solve_part1(input: &[char]) -> usize {
 /// before the first start-of-message marker (13 consecutive characters that are different) is
 /// observed.
 fn solve_part2(input: &[char]) -> usize {
-    for cursor in 0..(input.len() - 13) {
-        let mut window_set: HashSet<char> = HashSet::new();
-        for i in 0..14 {
-            window_set.insert(input[cursor + i]);
-        }
-        if window_set.len() == 14 {
-            return cursor + 14;
-        }
+    if let Some(index) = find_marker_index(input, 14) {
+        return index;
     }
     panic!("Day 6 Part 2 - did not first the start-of-message marker!");
+}
+
+/// Finds the index of the marker (sequence of characters that are different) in the given vector
+/// of characters with the given length. Index is the number of characters from the start of the
+/// given chars to the end of the marker (inclusive).
+fn find_marker_index(chars: &[char], marker_len: usize) -> Option<usize> {
+    for cursor in 0..(chars.len() - marker_len + 1) {
+        let mut window_set: HashSet<char> = HashSet::new();
+        for i in 0..marker_len {
+            // Break early if duplicate character is observed
+            if window_set.contains(&chars[cursor + i]) {
+                break;
+            }
+            window_set.insert(chars[cursor + i]);
+        }
+        // Check if the marker has been found
+        if window_set.len() == marker_len {
+            return Some(cursor + marker_len);
+        }
+    }
+    None
 }
 
 #[cfg(test)]
