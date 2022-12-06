@@ -51,7 +51,7 @@ fn solve_part1(input: &[char]) -> usize {
     if let Some(index) = find_marker_index(input, 4) {
         return index;
     }
-    panic!("Day 6 Part 1 - did not first the start-of-packet marker!");
+    panic!("Day 6 Part 1 - did not find the start-of-packet marker!");
 }
 
 /// Solves AOC 2022 Day 6 Part 2 // Returns the number of characters that need to be processed
@@ -61,7 +61,7 @@ fn solve_part2(input: &[char]) -> usize {
     if let Some(index) = find_marker_index(input, 14) {
         return index;
     }
-    panic!("Day 6 Part 2 - did not first the start-of-message marker!");
+    panic!("Day 6 Part 2 - did not find the start-of-message marker!");
 }
 
 /// Finds the index of the marker (sequence of characters that are different) in the given vector
