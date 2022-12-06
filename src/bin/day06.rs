@@ -55,7 +55,7 @@ fn solve_part1(input: &[char]) -> usize {
 }
 
 /// Solves AOC 2022 Day 6 Part 2 // Returns the number of characters that need to be processed
-/// before the first start-of-message marker (13 consecutive characters that are different) is
+/// before the first start-of-message marker (14 consecutive characters that are different) is
 /// observed.
 fn solve_part2(input: &[char]) -> usize {
     if let Some(index) = find_marker_index(input, 14) {
