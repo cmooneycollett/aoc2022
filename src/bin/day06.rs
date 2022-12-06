@@ -57,12 +57,23 @@ fn solve_part1(input: &[char]) -> usize {
             return cursor + 4;
         }
     }
-    panic!("Day 6 Part 1 - did not first the start-of-packet marker!")
+    panic!("Day 6 Part 1 - did not first the start-of-packet marker!");
 }
 
-/// Solves AOC 2022 Day 6 Part 2 // ###
-fn solve_part2(_input: &[char]) -> usize {
-    0
+/// Solves AOC 2022 Day 6 Part 2 // Returns the number of characters that need to be processed
+/// before the first start-of-message marker (13 consecutive characters that are different) is
+/// observed.
+fn solve_part2(input: &[char]) -> usize {
+    for cursor in 0..(input.len() - 13) {
+        let mut window_set: HashSet<char> = HashSet::new();
+        for i in 0..14 {
+            window_set.insert(input[cursor + i]);
+        }
+        if window_set.len() == 14 {
+            return cursor + 14;
+        }
+    }
+    panic!("Day 6 Part 2 - did not first the start-of-message marker!");
 }
 
 #[cfg(test)]
@@ -81,8 +92,7 @@ mod test {
     #[test]
     fn test_day06_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(3965, solution);
     }
 }
