@@ -10,15 +10,8 @@ const PROBLEM_DAY: u64 = 7;
 
 /// Represents a file or directory in a file system.
 enum FsItem {
-    File {
-        // parent_dir: String,
-        // name: String,
-        size: usize,
-    },
-    Directory {
-        parent_dir: String,
-        name: String,
-    },
+    File { size: usize },
+    Directory { parent_dir: String, name: String },
 }
 
 /// Processes the AOC 2022 Day 7 input file and solves both parts of the problem. Solutions are
@@ -51,14 +44,16 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 7 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is hashmap containing each directory (full path name) mapped to the vector of
+/// fsitems contained in the directory.
 fn process_input_file(filename: &str) -> HashMap<String, Vec<FsItem>> {
     // Read contents of problem input file
-    let raw_input = fs::read_to_string(filename).unwrap().replace("$", "%");
+    let binding = fs::read_to_string(filename).unwrap();
+    let raw_input = binding.trim();
     // Process input file contents into data structure
     let mut output: HashMap<String, Vec<FsItem>> = HashMap::new();
     let mut current_dir: VecDeque<String> = VecDeque::new();
-    let cd_regex = Regex::new(r"^% cd (.*)$").unwrap();
+    let cd_regex = Regex::new(r"^[$] cd (.*)$").unwrap();
     let file_regex = Regex::new(r"^(\d+) (.*)$").unwrap();
     let dir_regex = Regex::new(r"^dir (.*)$").unwrap();
     let lines = raw_input
@@ -108,19 +103,14 @@ fn process_input_file(filename: &str) -> HashMap<String, Vec<FsItem>> {
                 } else if file_regex.is_match(&lines[cursor]) {
                     let caps = file_regex.captures(&lines[cursor]).unwrap();
                     let size = caps[1].parse::<usize>().unwrap();
-                    // let name = caps[2].to_string();
-                    let file_item = FsItem::File {
-                        // parent_dir: cwd.to_string(),
-                        // name: name,
-                        size: size,
-                    };
+                    let file_item = FsItem::File { size };
                     output.get_mut(&cwd).unwrap().push(file_item);
                 } else if dir_regex.is_match(&lines[cursor]) {
                     let caps = dir_regex.captures(&lines[cursor]).unwrap();
                     let name = caps[1].to_string();
                     let dir_item = FsItem::Directory {
                         parent_dir: cwd.to_string(),
-                        name: name,
+                        name,
                     };
                     output.get_mut(&cwd).unwrap().push(dir_item);
                 } else {
@@ -138,7 +128,11 @@ fn process_input_file(filename: &str) -> HashMap<String, Vec<FsItem>> {
 fn solve_part1(dirs: &HashMap<String, Vec<FsItem>>) -> usize {
     let mut dir_sizes: HashMap<String, usize> = HashMap::new();
     find_dir_sizes(dirs, &mut dir_sizes, &String::from("/"));
-    return dir_sizes.values().copied().filter(|size| *size <= 100000).sum();
+    return dir_sizes
+        .values()
+        .copied()
+        .filter(|size| *size <= 100000)
+        .sum();
 }
 
 /// Solves AOC 2022 Day 7 Part 2 // Finds the size of the smallest directory that would free up
@@ -149,10 +143,15 @@ fn solve_part2(dirs: &HashMap<String, Vec<FsItem>>) -> usize {
     let mut dir_sizes: HashMap<String, usize> = HashMap::new();
     find_dir_sizes(dirs, &mut dir_sizes, &String::from("/"));
     let free_space = max_fs_size - dir_sizes.get("/").unwrap();
+    // Calculate extra amount of free space
     let delta = req_free_space - free_space;
-    let mut candidate_dirs = dir_sizes.values().copied().filter(|size| *size >= delta).collect::<Vec<usize>>();
+    let mut candidate_dirs = dir_sizes
+        .values()
+        .copied()
+        .filter(|size| *size >= delta)
+        .collect::<Vec<usize>>();
     candidate_dirs.sort();
-    return candidate_dirs[0];
+    candidate_dirs[0]
 }
 
 /// Finds the sizes of all directories below the given dir. Size of directories are updated into the
@@ -169,10 +168,10 @@ fn find_dir_sizes(
                 let cwd = format!("{}{}/", parent_dir, name);
                 find_dir_sizes(dirs, dir_sizes, &cwd);
                 total_size += dir_sizes.get(&cwd).unwrap();
-            },
-            FsItem::File { /* parent_dir: _, name: _, */ size } => {
+            }
+            FsItem::File { size } => {
                 total_size += size;
-            },
+            }
         }
     }
     dir_sizes.insert(dir.to_string(), total_size);
