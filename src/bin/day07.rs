@@ -1,9 +1,25 @@
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::time::Instant;
 
-const PROBLEM_NAME: &str = "###";
+use regex::Regex;
+
+const PROBLEM_NAME: &str = "No Space Left On Device";
 const PROBLEM_INPUT_FILE: &str = "./input/day07.txt";
 const PROBLEM_DAY: u64 = 7;
+
+/// Represents a file or directory in a file system.
+enum FsItem {
+    File {
+        // parent_dir: String,
+        // name: String,
+        size: usize,
+    },
+    Directory {
+        parent_dir: String,
+        name: String,
+    },
+}
 
 /// Processes the AOC 2022 Day 7 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -36,21 +52,120 @@ pub fn main() {
 
 /// Processes the AOC 2022 Day 7 input file in the format required by the solver functions.
 /// Returned value is ###.
-fn process_input_file(filename: &str) -> String {
+fn process_input_file(filename: &str) -> HashMap<String, Vec<FsItem>> {
     // Read contents of problem input file
-    let _raw_input = fs::read_to_string(filename).unwrap();
+    let raw_input = fs::read_to_string(filename).unwrap().replace("$", "%");
     // Process input file contents into data structure
-    unimplemented!();
+    let mut output: HashMap<String, Vec<FsItem>> = HashMap::new();
+    let mut current_dir: VecDeque<String> = VecDeque::new();
+    let cd_regex = Regex::new(r"^% cd (.*)$").unwrap();
+    let file_regex = Regex::new(r"^(\d+) (.*)$").unwrap();
+    let dir_regex = Regex::new(r"^dir (.*)$").unwrap();
+    let lines = raw_input
+        .trim()
+        .lines()
+        .map(|line| line.trim().to_string())
+        .collect::<Vec<String>>();
+    let mut cursor = 0;
+    loop {
+        if cursor >= lines.len() {
+            break;
+        }
+        if cd_regex.is_match(&lines[cursor]) {
+            let caps = cd_regex.captures(&lines[cursor]).unwrap();
+            let dir = caps[1].to_string();
+            if dir == ".." {
+                current_dir.pop_back();
+                cursor += 1;
+            } else if dir == "/" {
+                current_dir.push_back(dir);
+                let cwd = current_dir
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<String>>()
+                    .join("");
+                output.insert(cwd, vec![]);
+                cursor += 2;
+            } else {
+                current_dir.push_back(format!("{}/", dir));
+                let cwd = current_dir
+                    .iter()
+                    .cloned()
+                    .collect::<Vec<String>>()
+                    .join("");
+                output.insert(cwd, vec![]);
+                cursor += 2;
+            }
+        } else {
+            let cwd = current_dir
+                .iter()
+                .cloned()
+                .collect::<Vec<String>>()
+                .join("");
+            loop {
+                if cursor >= lines.len() || cd_regex.is_match(&lines[cursor]) {
+                    break;
+                } else if file_regex.is_match(&lines[cursor]) {
+                    let caps = file_regex.captures(&lines[cursor]).unwrap();
+                    let size = caps[1].parse::<usize>().unwrap();
+                    // let name = caps[2].to_string();
+                    let file_item = FsItem::File {
+                        // parent_dir: cwd.to_string(),
+                        // name: name,
+                        size: size,
+                    };
+                    output.get_mut(&cwd).unwrap().push(file_item);
+                } else if dir_regex.is_match(&lines[cursor]) {
+                    let caps = dir_regex.captures(&lines[cursor]).unwrap();
+                    let name = caps[1].to_string();
+                    let dir_item = FsItem::Directory {
+                        parent_dir: cwd.to_string(),
+                        name: name,
+                    };
+                    output.get_mut(&cwd).unwrap().push(dir_item);
+                } else {
+                    panic!("Day 7 - bad file system item!");
+                }
+                cursor += 1;
+            }
+        }
+    }
+    output
 }
 
 /// Solves AOC 2022 Day 7 Part 1 // ###
-fn solve_part1(_input: &String) -> String {
-    unimplemented!();
+fn solve_part1(dirs: &HashMap<String, Vec<FsItem>>) -> usize {
+    let mut dir_sizes: HashMap<String, usize> = HashMap::new();
+    find_dir_sizes(dirs, &mut dir_sizes, &String::from("/"));
+    return dir_sizes.values().filter(|size| **size <= 100000).sum();
 }
 
 /// Solves AOC 2022 Day 7 Part 2 // ###
-fn solve_part2(_input: &String) -> String {
-    unimplemented!();
+fn solve_part2(_input: &HashMap<String, Vec<FsItem>>) -> usize {
+    0
+}
+
+/// Finds the sizes of all directories below the given dir. Size of directories are updated into the
+/// dir_sizes hashmap.
+fn find_dir_sizes(
+    dirs: &HashMap<String, Vec<FsItem>>,
+    dir_sizes: &mut HashMap<String, usize>,
+    dir: &String,
+) {
+    let mut total_size = 0;
+    for fs_item in dirs.get(dir).unwrap().iter() {
+        match fs_item {
+            FsItem::Directory { parent_dir, name } => {
+                let cwd = format!("{}{}/", parent_dir, name);
+                find_dir_sizes(dirs, dir_sizes, &cwd);
+                total_size += dir_sizes.get(&cwd).unwrap();
+            },
+            FsItem::File { /* parent_dir: _, name: _, */ size } => {
+                total_size += size;
+            },
+        }
+    }
+    dir_sizes.insert(dir.to_string(), total_size);
 }
 
 #[cfg(test)]
@@ -61,9 +176,8 @@ mod test {
     #[test]
     fn test_day07_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(1432936, solution);
     }
 
     /// Tests the Day 7 Part 2 solver method against the actual problem solution.
