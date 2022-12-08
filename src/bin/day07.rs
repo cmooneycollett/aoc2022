@@ -133,16 +133,26 @@ fn process_input_file(filename: &str) -> HashMap<String, Vec<FsItem>> {
     output
 }
 
-/// Solves AOC 2022 Day 7 Part 1 // ###
+/// Solves AOC 2022 Day 7 Part 1 // Calculates the total size of all directories that have a size of
+/// at most 100,000.
 fn solve_part1(dirs: &HashMap<String, Vec<FsItem>>) -> usize {
     let mut dir_sizes: HashMap<String, usize> = HashMap::new();
     find_dir_sizes(dirs, &mut dir_sizes, &String::from("/"));
-    return dir_sizes.values().filter(|size| **size <= 100000).sum();
+    return dir_sizes.values().copied().filter(|size| *size <= 100000).sum();
 }
 
-/// Solves AOC 2022 Day 7 Part 2 // ###
-fn solve_part2(_input: &HashMap<String, Vec<FsItem>>) -> usize {
-    0
+/// Solves AOC 2022 Day 7 Part 2 // Finds the size of the smallest directory that would free up
+/// enough space if deleted.
+fn solve_part2(dirs: &HashMap<String, Vec<FsItem>>) -> usize {
+    let max_fs_size: usize = 70000000;
+    let req_free_space: usize = 30000000;
+    let mut dir_sizes: HashMap<String, usize> = HashMap::new();
+    find_dir_sizes(dirs, &mut dir_sizes, &String::from("/"));
+    let free_space = max_fs_size - dir_sizes.get("/").unwrap();
+    let delta = req_free_space - free_space;
+    let mut candidate_dirs = dir_sizes.values().copied().filter(|size| *size >= delta).collect::<Vec<usize>>();
+    candidate_dirs.sort();
+    return candidate_dirs[0];
 }
 
 /// Finds the sizes of all directories below the given dir. Size of directories are updated into the
@@ -184,8 +194,7 @@ mod test {
     #[test]
     fn test_day07_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(272298, solution);
     }
 }
