@@ -1,9 +1,20 @@
+use std::collections::HashSet;
 use std::fs;
 use std::time::Instant;
 
-const PROBLEM_NAME: &str = "###";
+use aoc2022::utils::cartography::Point2D;
+
+const PROBLEM_NAME: &str = "Rope Bridge";
 const PROBLEM_INPUT_FILE: &str = "./input/day09.txt";
-const PROBLEM_DAY: u64 = 0;
+const PROBLEM_DAY: u64 = 9;
+
+/// Represents a movement in a different cardinal direction with an associated number of steps.
+enum MoveType {
+    Up { steps: u64 },
+    Down { steps: u64 },
+    Left { steps: u64 },
+    Right { steps: u64 },
+}
 
 /// Processes the AOC 2022 Day 9 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -40,21 +51,94 @@ pub fn main() {
 
 /// Processes the AOC 2022 Day 9 input file in the format required by the solver functions.
 /// Returned value is ###.
-fn process_input_file(filename: &str) -> String {
+fn process_input_file(filename: &str) -> Vec<MoveType> {
     // Read contents of problem input file
-    let _raw_input = fs::read_to_string(filename).unwrap();
+    let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    unimplemented!();
+    let mut output: Vec<MoveType> = vec![];
+    for line in raw_input.lines() {
+        let line = line.trim();
+        if line.len() == 0 {
+            continue;
+        }
+        let split = line.split(" ").collect::<Vec<&str>>();
+        let steps = split[1].parse::<u64>().unwrap();
+        match split[0] {
+            "U" => {
+                output.push(MoveType::Up { steps });
+            },
+            "R" => {
+                output.push(MoveType::Right { steps });
+            },
+            "D" => {
+                output.push(MoveType::Down { steps });
+            },
+            "L" => {
+                output.push(MoveType::Left { steps });
+            },
+            _ => panic!("Day 9 - bad move type!"),
+        }
+    }
+    output
 }
 
-/// Solves AOC 2022 Day 9 Part 1 // ###
-fn solve_part1(_input: &String) -> String {
-    unimplemented!();
+/// Solves AOC 2022 Day 9 Part 1 // Calculates the number of unique locations visited by the tail of
+/// the rope.
+fn solve_part1(instructions: &[MoveType]) -> usize {
+    let mut tail_locs: HashSet<Point2D> = HashSet::new();
+    let mut head_loc = Point2D::new(0, 0);
+    let mut tail_loc = Point2D::new(0, 0);
+    tail_locs.insert(tail_loc);
+    for instruct in instructions {
+        match instruct {
+            MoveType::Up { steps } => {
+                for _ in 0..*steps {
+                    let old_head_loc = head_loc;
+                    head_loc.move_point(0, -1);
+                    if (head_loc.get_y() - tail_loc.get_y()).abs() >= 2 {
+                        tail_loc = old_head_loc;
+                        tail_locs.insert(tail_loc);
+                    }
+                }
+            },
+            MoveType::Down { steps } => {
+                for _ in 0..*steps {
+                    let old_head_loc = head_loc;
+                    head_loc.move_point(0, 1);
+                    if (head_loc.get_y() - tail_loc.get_y()).abs() >= 2 {
+                        tail_loc = old_head_loc;
+                        tail_locs.insert(tail_loc);
+                    }
+                }
+            },
+            MoveType::Left { steps } => {
+                for _ in 0..*steps {
+                    let old_head_loc = head_loc;
+                    head_loc.move_point(-1, 0);
+                    if (head_loc.get_x() - tail_loc.get_x()).abs() >= 2 {
+                        tail_loc = old_head_loc;
+                        tail_locs.insert(tail_loc);
+                    }
+                }
+            },
+            MoveType::Right { steps } => {
+                for _ in 0..*steps {
+                    let old_head_loc = head_loc;
+                    head_loc.move_point(1, 0);
+                    if (head_loc.get_x() - tail_loc.get_x()).abs() >= 2 {
+                        tail_loc = old_head_loc;
+                        tail_locs.insert(tail_loc);
+                    }
+                }
+            },
+        }
+    }
+    tail_locs.len()
 }
 
 /// Solves AOC 2022 Day 9 Part 2 // ###
-fn solve_part2(_input: &String) -> String {
-    unimplemented!();
+fn solve_part2(_input: &[MoveType]) -> usize {
+    0
 }
 
 #[cfg(test)]
@@ -65,9 +149,8 @@ mod test {
     #[test]
     fn test_day09_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(6311, solution);
     }
 
     /// Tests the Day 09 Part 2 solver method against the actual problem solution.
