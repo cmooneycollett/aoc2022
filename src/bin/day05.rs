@@ -37,7 +37,10 @@ pub fn main() {
     println!("[+] Input:  {:.2?}", input_parser_duration);
     println!("[+] Part 1: {:.2?}", p1_duration);
     println!("[+] Part 2: {:.2?}", p2_duration);
-    println!("[*] TOTAL:  {:.2?}", input_parser_duration + p1_duration + p2_duration);
+    println!(
+        "[*] TOTAL:  {:.2?}",
+        input_parser_duration + p1_duration + p2_duration
+    );
     println!("==================================================");
 }
 
