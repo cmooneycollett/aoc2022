@@ -109,9 +109,66 @@ fn solve_part1(tree_heights: &[Vec<u64>]) -> u64 {
     total_visible
 }
 
-/// Solves AOC 2022 Day 8 Part 2 // ###
-fn solve_part2(_input: &[Vec<u64>]) -> u64 {
-    0
+/// Solves AOC 2022 Day 8 Part 2 // Calculates the highest "scenic score" possible from any tree.
+fn solve_part2(tree_heights: &[Vec<u64>]) -> u64 {
+    let max_y = tree_heights.len() - 1;
+    let max_x = tree_heights[0].len() - 1;
+    let mut max_scenic_score = 0;
+    for y in 0..=max_y {
+        for x in 0..=max_x {
+            let mut score_elements: Vec<u64> = vec![];
+            // Left
+            for i in 0..x {
+                if i == x - 1 {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+                if tree_heights[y][x - i - 1] >= tree_heights[y][x] {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+            }
+            // Top
+            for i in 0..y {
+                if i == y - 1 {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+                if tree_heights[y - i - 1][x] >= tree_heights[y][x] {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+            }
+            // Right
+            for i in 0..(max_x - x) {
+                if i == max_x - x - 1 {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+                if tree_heights[y][x + i + 1] >= tree_heights[y][x] {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+            }
+            // Bottom
+            for i in 0..(max_y - y) {
+                if i == max_y - y - 1 {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+                if tree_heights[y + i + 1][x] >= tree_heights[y][x] {
+                    score_elements.push((i + 1) as u64);
+                    break;
+                }
+            }
+            // Calculate scenic score and check if it is the new maximum value
+            let scenic_score: u64 = score_elements.iter().product();
+            if scenic_score > max_scenic_score {
+                max_scenic_score = scenic_score;
+            }
+        }
+    }
+    max_scenic_score
 }
 
 #[cfg(test)]
@@ -130,8 +187,7 @@ mod test {
     #[test]
     fn test_day08_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(496125, solution);
     }
 }
