@@ -57,7 +57,7 @@ fn process_input_file(filename: &str) -> Vec<Vec<u64>> {
 
 /// Solves AOC 2022 Day 8 Part 1 // Calculates the number of trees that are visible from outside the
 /// grid.
-fn solve_part1(tree_heights: &[Vec<u64>]) -> u64 {
+fn solve_part1(tree_heights: &[Vec<u64>]) -> usize {
     let max_y = tree_heights.len() - 1;
     let max_x = tree_heights[0].len() - 1;
     let mut total_visible = 0;
@@ -110,65 +110,67 @@ fn solve_part1(tree_heights: &[Vec<u64>]) -> u64 {
 }
 
 /// Solves AOC 2022 Day 8 Part 2 // Calculates the highest "scenic score" possible from any tree.
-fn solve_part2(tree_heights: &[Vec<u64>]) -> u64 {
+fn solve_part2(tree_heights: &[Vec<u64>]) -> usize {
     let max_y = tree_heights.len() - 1;
     let max_x = tree_heights[0].len() - 1;
     let mut max_scenic_score = 0;
     for y in 0..=max_y {
         for x in 0..=max_x {
-            let mut score_elements: Vec<u64> = vec![];
-            // Left
-            for i in 0..x {
-                if i == x - 1 {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-                if tree_heights[y][x - i - 1] >= tree_heights[y][x] {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-            }
-            // Top
-            for i in 0..y {
-                if i == y - 1 {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-                if tree_heights[y - i - 1][x] >= tree_heights[y][x] {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-            }
-            // Right
-            for i in 0..(max_x - x) {
-                if i == max_x - x - 1 {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-                if tree_heights[y][x + i + 1] >= tree_heights[y][x] {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-            }
-            // Bottom
-            for i in 0..(max_y - y) {
-                if i == max_y - y - 1 {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-                if tree_heights[y + i + 1][x] >= tree_heights[y][x] {
-                    score_elements.push((i + 1) as u64);
-                    break;
-                }
-            }
+            // Calculate scenic score from product of LEFT, TOP, RIGHT and BOTTOM viewing distances
+            let mut scenic_score = 1;
+            scenic_score *= get_left_side_viewing_distance(x, y, tree_heights);
+            scenic_score *= get_top_side_viewing_distance(x, y, tree_heights);
+            scenic_score *= get_right_side_viewing_distance(x, y, tree_heights);
+            scenic_score *= get_bottom_side_viewing_distance(x, y, tree_heights);
             // Calculate scenic score and check if it is the new maximum value
-            let scenic_score: u64 = score_elements.iter().product();
             if scenic_score > max_scenic_score {
                 max_scenic_score = scenic_score;
             }
         }
     }
     max_scenic_score
+}
+
+/// Determines the LEFT side viewing distance from the current tree (x,y position).
+fn get_left_side_viewing_distance(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> usize {
+    for i in 0..x {
+        if tree_heights[y][x - i - 1] >= tree_heights[y][x] {
+            return i + 1;
+        }
+    }
+    x
+}
+
+/// Determines the TOP side viewing distance from the current tree (x,y position).
+fn get_top_side_viewing_distance(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> usize {
+    for i in 0..y {
+        if tree_heights[y - i - 1][x] >= tree_heights[y][x] {
+            return i + 1;
+        }
+    }
+    y
+}
+
+/// Determines the RIGHT side viewing distance from the current tree (x,y position).
+fn get_right_side_viewing_distance(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> usize {
+    let max_x = tree_heights[0].len() - 1;
+    for i in 0..(max_x - x) {
+        if tree_heights[y][x + i + 1] >= tree_heights[y][x] {
+            return i + 1;
+        }
+    }
+    max_x - x
+}
+
+/// Determines the BOTTOM side viewing distance from the current tree (x,y position).
+fn get_bottom_side_viewing_distance(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> usize {
+    let max_y = tree_heights.len() - 1;
+    for i in 0..(max_y - y) {
+        if tree_heights[y + i + 1][x] >= tree_heights[y][x] {
+            return i + 1;
+        }
+    }
+    max_y - y
 }
 
 #[cfg(test)]
