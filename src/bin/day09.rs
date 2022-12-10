@@ -9,11 +9,12 @@ const PROBLEM_INPUT_FILE: &str = "./input/day09.txt";
 const PROBLEM_DAY: u64 = 9;
 
 /// Represents a movement in a different cardinal direction with an associated number of steps.
+#[derive(Debug)]
 enum MoveType {
-    Up { steps: u64 },
-    Down { steps: u64 },
-    Left { steps: u64 },
-    Right { steps: u64 },
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 /// Processes the AOC 2022 Day 9 input file and solves both parts of the problem. Solutions are
@@ -50,31 +51,31 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 9 input file in the format required by the solver functions.
-/// Returned value is ###.
-fn process_input_file(filename: &str) -> Vec<MoveType> {
+/// Returned value is vector of tuples containing move type and number of steps.
+fn process_input_file(filename: &str) -> Vec<(MoveType, usize)> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    let mut output: Vec<MoveType> = vec![];
+    let mut output: Vec<(MoveType, usize)> = vec![];
     for line in raw_input.lines() {
         let line = line.trim();
         if line.len() == 0 {
             continue;
         }
         let split = line.split(" ").collect::<Vec<&str>>();
-        let steps = split[1].parse::<u64>().unwrap();
+        let steps = split[1].parse::<usize>().unwrap();
         match split[0] {
             "U" => {
-                output.push(MoveType::Up { steps });
+                output.push((MoveType::Up, steps));
             },
             "R" => {
-                output.push(MoveType::Right { steps });
+                output.push((MoveType::Right, steps));
             },
             "D" => {
-                output.push(MoveType::Down { steps });
+                output.push((MoveType::Down, steps));
             },
             "L" => {
-                output.push(MoveType::Left { steps });
+                output.push((MoveType::Left, steps));
             },
             _ => panic!("Day 9 - bad move type!"),
         }
@@ -82,62 +83,74 @@ fn process_input_file(filename: &str) -> Vec<MoveType> {
     output
 }
 
-/// Solves AOC 2022 Day 9 Part 1 // Calculates the number of unique locations visited by the tail of
-/// the rope.
-fn solve_part1(instructions: &[MoveType]) -> usize {
+/// Processes the rope moves and returns the number of unique locations visited by the tail knot.
+fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> usize {
+    if rope_len == 0 {
+        return 0;
+    }
     let mut tail_locs: HashSet<Point2D> = HashSet::new();
-    let mut head_loc = Point2D::new(0, 0);
-    let mut tail_loc = Point2D::new(0, 0);
-    tail_locs.insert(tail_loc);
-    for instruct in instructions {
-        match instruct {
-            MoveType::Up { steps } => {
-                for _ in 0..*steps {
-                    let old_head_loc = head_loc;
-                    head_loc.move_point(0, -1);
-                    if (head_loc.get_y() - tail_loc.get_y()).abs() >= 2 {
-                        tail_loc = old_head_loc;
-                        tail_locs.insert(tail_loc);
-                    }
+    let mut knots: Vec<Point2D> = vec![Point2D::new(0, 0); rope_len].to_vec();
+    tail_locs.insert(knots[rope_len - 1]);
+    for (move_type, steps) in instructions {
+        for _ in 0..*steps {
+            // Move the first knot
+            let mut new_knots: Vec<Point2D> = vec![];
+            match move_type {
+                MoveType::Up => new_knots.push(knots[0].check_move_point(0, -1)),
+                MoveType::Down => new_knots.push(knots[0].check_move_point(0, 1)),
+                MoveType::Left => new_knots.push(knots[0].check_move_point(-1, 0)),
+                MoveType::Right => new_knots.push(knots[0].check_move_point(1, 0)),
+            }
+            // Now move the following knots
+            for i in 1..rope_len {
+                let delta_x = new_knots[i - 1].get_x() - knots[i].get_x();
+                let delta_y = new_knots[i - 1].get_y() - knots[i].get_y();
+                if delta_x.abs() >= 2 || delta_y.abs() >= 2 {
+                    // Normalise delta_x
+                    let dx = {
+                        if delta_x == 0 || delta_x == 1 || delta_x == -1 {
+                            0
+                        } else if delta_x >= 2 {
+                            1
+                        } else if delta_x <= -2 {
+                            -1
+                        } else {
+                            panic!("should not get here!");
+                        }
+                    };
+                    // Normalise delta_y
+                    let dy = {
+                        if delta_y == 0 || delta_y == 1 || delta_y == -1 {
+                            0
+                        } else if delta_y >= 2 {
+                            1
+                        } else if delta_y <= -2 {
+                            -1
+                        } else {
+                            panic!("should not get here!");
+                        }
+                    };
+                    new_knots.push(knots[i].check_move_point(delta_x - dx, delta_y - dy));
+                } else {
+                    new_knots.push(knots[i]);
                 }
-            },
-            MoveType::Down { steps } => {
-                for _ in 0..*steps {
-                    let old_head_loc = head_loc;
-                    head_loc.move_point(0, 1);
-                    if (head_loc.get_y() - tail_loc.get_y()).abs() >= 2 {
-                        tail_loc = old_head_loc;
-                        tail_locs.insert(tail_loc);
-                    }
-                }
-            },
-            MoveType::Left { steps } => {
-                for _ in 0..*steps {
-                    let old_head_loc = head_loc;
-                    head_loc.move_point(-1, 0);
-                    if (head_loc.get_x() - tail_loc.get_x()).abs() >= 2 {
-                        tail_loc = old_head_loc;
-                        tail_locs.insert(tail_loc);
-                    }
-                }
-            },
-            MoveType::Right { steps } => {
-                for _ in 0..*steps {
-                    let old_head_loc = head_loc;
-                    head_loc.move_point(1, 0);
-                    if (head_loc.get_x() - tail_loc.get_x()).abs() >= 2 {
-                        tail_loc = old_head_loc;
-                        tail_locs.insert(tail_loc);
-                    }
-                }
-            },
+            }
+            // Update the knot locations and insert the tail knot location into set
+            knots = new_knots;
+            tail_locs.insert(knots[rope_len - 1]);
         }
     }
     tail_locs.len()
 }
 
+/// Solves AOC 2022 Day 9 Part 1 // Calculates the number of unique locations visited by the tail of
+/// the rope (two knots).
+fn solve_part1(instructions: &[(MoveType, usize)]) -> usize {
+    process_rope_moves(instructions, 2)
+}
+
 /// Solves AOC 2022 Day 9 Part 2 // ###
-fn solve_part2(_input: &[MoveType]) -> usize {
+fn solve_part2(_instructions: &[(MoveType, usize)]) -> usize {
     0
 }
 

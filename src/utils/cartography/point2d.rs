@@ -45,6 +45,13 @@ impl Point2D {
         self.y += delta_y;
     }
 
+    /// Returns the Point2D after the current point is moved by the specified x- and y-deltas.
+    pub fn check_move_point(&self, delta_x: i64, delta_y: i64) -> Point2D {
+        let new_x = self.x + delta_x;
+        let new_y = self.y + delta_y;
+        return Point2D { x: new_x, y: new_y };
+    }
+
     /// Gets the eight surrounding points from the current location. Panics if integer overflow or
     /// underflow would occur.
     pub fn get_surrounding_points(&self) -> Vec<Point2D> {
