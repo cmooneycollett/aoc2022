@@ -2,21 +2,18 @@
 #[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct Point2D {
     x: i64,
-    y: i64
+    y: i64,
 }
 
 impl Point2D {
     /// Creates a new 2D point.
     pub fn new(x: i64, y: i64) -> Self {
-        Self {
-            x: x,
-            y: y
-        }
+        Self { x, y }
     }
 
     /// Gets the value of the x-coordinate.
     pub fn get_x(&self) -> i64 {
-        return self.x;
+        self.x
     }
 
     /// Updates the value of the x-coordinate.
@@ -26,7 +23,7 @@ impl Point2D {
 
     /// Gets the value of the y-coordinate.
     pub fn get_y(&self) -> i64 {
-        return self.y;
+        self.y
     }
 
     /// Updates the value of the y-coordinate.
@@ -36,7 +33,7 @@ impl Point2D {
 
     /// Checks if another Point2D is adjacent to the current one.
     pub fn is_adjacent(&self, other: &Point2D) -> bool {
-        return (self.x - other.x).abs() > 1 || (self.y - other.y).abs() > 1;
+        (self.x - other.x).abs() > 1 || (self.y - other.y).abs() > 1
     }
 
     /// Moves the point by the specified amount in the x- and y-directions.
@@ -49,26 +46,27 @@ impl Point2D {
     pub fn check_move_point(&self, delta_x: i64, delta_y: i64) -> Point2D {
         let new_x = self.x + delta_x;
         let new_y = self.y + delta_y;
-        return Point2D { x: new_x, y: new_y };
+        Point2D { x: new_x, y: new_y }
     }
 
     /// Gets the eight surrounding points from the current location. Panics if integer overflow or
     /// underflow would occur.
     pub fn get_surrounding_points(&self) -> Vec<Point2D> {
-        let mut output: Vec<Point2D> = vec![];
-        output.push(Point2D::new(self.x, self.y - 1)); // up
-        output.push(Point2D::new(self.x + 1, self.y - 1)); // diag - up right
-        output.push(Point2D::new(self.x + 1, self.y)); // right
-        output.push(Point2D::new(self.x + 1, self.y + 1)); // diag - down right
-        output.push(Point2D::new(self.x, self.y + 1)); // down
-        output.push(Point2D::new(self.x - 1, self.y + 1)); // diag - down left
-        output.push(Point2D::new(self.x - 1, self.y)); // left
-        output.push(Point2D::new(self.x - 1, self.y - 1)); // diag - up left
-        return output;
+        let output: Vec<Point2D> = vec![
+            Point2D::new(self.x, self.y - 1),     // up
+            Point2D::new(self.x + 1, self.y - 1), // diag - up right
+            Point2D::new(self.x + 1, self.y),     // right
+            Point2D::new(self.x + 1, self.y + 1), // diag - down right
+            Point2D::new(self.x, self.y + 1),     // down
+            Point2D::new(self.x - 1, self.y + 1), // diag - down left
+            Point2D::new(self.x - 1, self.y),     // left
+            Point2D::new(self.x - 1, self.y - 1), // diag - up left
+        ];
+        output
     }
 
     /// Calculates the Manhattan distance between the current point and the other point.
     pub fn calculate_manhattan_distance(&self, other: &Point2D) -> u64 {
-        return (self.x - other.x).abs() as u64 + (self.y - other.y).abs() as u64;
+        (self.x - other.x).unsigned_abs() + (self.y - other.y).unsigned_abs()
     }
 }

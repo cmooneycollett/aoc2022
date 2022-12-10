@@ -59,24 +59,24 @@ fn process_input_file(filename: &str) -> Vec<(MoveType, usize)> {
     let mut output: Vec<(MoveType, usize)> = vec![];
     for line in raw_input.lines() {
         let line = line.trim();
-        if line.len() == 0 {
+        if line.is_empty() {
             continue;
         }
-        let split = line.split(" ").collect::<Vec<&str>>();
+        let split = line.split(' ').collect::<Vec<&str>>();
         let steps = split[1].parse::<usize>().unwrap();
         match split[0] {
             "U" => {
                 output.push((MoveType::Up, steps));
-            },
+            }
             "R" => {
                 output.push((MoveType::Right, steps));
-            },
+            }
             "D" => {
                 output.push((MoveType::Down, steps));
-            },
+            }
             "L" => {
                 output.push((MoveType::Left, steps));
-            },
+            }
             _ => panic!("Day 9 - bad move type!"),
         }
     }
@@ -120,26 +120,22 @@ fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> us
                 if delta_x.abs() >= 2 || delta_y.abs() >= 2 {
                     // Normalise delta_x
                     let dx = {
-                        if delta_x == 0 || delta_x == 1 || delta_x == -1 {
-                            0
-                        } else if delta_x >= 2 {
+                        if delta_x >= 2 {
                             1
                         } else if delta_x <= -2 {
                             -1
                         } else {
-                            panic!("should not get here!");
+                            0
                         }
                     };
                     // Normalise delta_y
                     let dy = {
-                        if delta_y == 0 || delta_y == 1 || delta_y == -1 {
-                            0
-                        } else if delta_y >= 2 {
+                        if delta_y >= 2 {
                             1
                         } else if delta_y <= -2 {
                             -1
                         } else {
-                            panic!("should not get here!");
+                            0
                         }
                     };
                     new_knots.push(knots[i].check_move_point(delta_x - dx, delta_y - dy));
