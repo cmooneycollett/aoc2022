@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::time::Instant;
 
@@ -11,7 +11,7 @@ const PROBLEM_DAY: u64 = 10;
 /// Represents the different instructions for the display CPU.
 enum Instruction {
     Noop,
-    Addv {value: i64},
+    Addv { value: i64 },
 }
 
 /// Processes the AOC 2022 Day 10 input file and solves both parts of the problem. Solutions are
@@ -95,7 +95,7 @@ fn solve_part1(input: &[Instruction]) -> i64 {
                     target_cycles.remove(&clock_cycle);
                 }
                 clock_cycle += 1;
-            },
+            }
             Instruction::Addv { value } => {
                 for _ in 0..2 {
                     if target_cycles.contains(&clock_cycle) {
@@ -116,24 +116,26 @@ fn solve_part1(input: &[Instruction]) -> i64 {
 fn solve_part2(input: &[Instruction]) -> String {
     let mut reg_x = 1;
     let mut clock_cycle = 0;
-    let mut output_array: Vec<Vec<char>> = vec![vec![' '; 40]; 6];
+    let mut output_array: Vec<Vec<char>> = vec![vec!['.'; 40]; 6];
     for instruct in input {
         if clock_cycle > 240 {
             break;
         }
         match instruct {
             Instruction::Noop => {
-                let target_set: HashSet<i64> = ((reg_x - 1)..=(reg_x + 1)).collect::<HashSet<i64>>();
+                let target_set: HashSet<i64> =
+                    ((reg_x - 1)..=(reg_x + 1)).collect::<HashSet<i64>>();
                 if target_set.contains(&(clock_cycle % 40)) {
                     let x = (clock_cycle as usize) % 40;
                     let y = (clock_cycle as usize) / 40;
                     output_array[y][x] = '#';
                 }
                 clock_cycle += 1
-            },
+            }
             Instruction::Addv { value } => {
                 for _ in 0..2 {
-                    let target_set: HashSet<i64> = ((reg_x - 1)..=(reg_x + 1)).collect::<HashSet<i64>>();
+                    let target_set: HashSet<i64> =
+                        ((reg_x - 1)..=(reg_x + 1)).collect::<HashSet<i64>>();
                     if target_set.contains(&(clock_cycle % 40)) {
                         let x = (clock_cycle as usize) % 40;
                         let y = (clock_cycle as usize) / 40;
@@ -145,14 +147,59 @@ fn solve_part2(input: &[Instruction]) -> String {
             }
         }
     }
-    // Draw output array
-    for y in 0..6 {
-        for x in 0..40 {
-            print!("{}", output_array[y][x]);
+    // Decode the output array
+    decode_output_array(&output_array)
+}
+
+/// Decodes the output array by determining the eight capital letters represented in the array.
+fn decode_output_array(output_array: &[Vec<char>]) -> String {
+    // Output
+    let mut output = String::new();
+    // Letter sequences (6 rows of 5 chars all concatenated for each letter)
+    let letters: HashMap<&str, char> = HashMap::from([
+        (".##..#..#.#..#.####.#..#.#..#.", 'A'),
+        ("###..#..#.###..#..#.#..#.###..", 'B'),
+        (".###.#....#....#....#.....###.", 'C'),
+        ("###..#..#.#..#.#..#.#..#.###..", 'D'),
+        ("####.#....####.#....#....####.", 'E'),
+        ("####.#....###..#....#....#....", 'F'),
+        ("####.#..#.#....#.##.#..#.####.", 'G'),
+        ("#..#.#..#.####.#..#.#..#.#..#.", 'H'),
+        ("#####..#....#....#....#..#####", 'I'),
+        ("..##....#....#....#.#..#..##..", 'J'),
+        ("#..#.#.#..##...#.#..#.#..#..#.", 'K'),
+        ("#....#....#....#....#....####.", 'L'),
+        ("#...###.###.#.##...##...##...#", 'M'),
+        ("#...###..##.#.##..###...##...#", 'N'),
+        ("####.#..#.#..#.#..#.#..#.####.", 'O'),
+        ("###..#..#.#..#.###..#....#....", 'P'),
+        (".##..#..#.#..#.#..#..###.....#", 'Q'),
+        ("###..#..#.#..#.###..#.#..#..#.", 'R'),
+        (".###.#....#.....##.....#.###..", 'S'),
+        ("#####..#....#....#....#....#..", 'T'),
+        ("#..#.#..#.#..#.#..#.#..#..##..", 'U'),
+        ("#...##...##...##...#.#.#...#..", 'V'),
+        ("#...##...##.#.##.#.##.#.######", 'W'),
+        ("#...#.#.#...#....#...#.#.#...#", 'X'),
+        ("#...#.#.#...#....#....#....#..", 'Y'),
+        ("####....#...#...#...#....####.", 'Z'),
+    ]);
+    // Construct output
+    for i in 0..8 {
+        let mut letter_key = String::new();
+        for row in output_array {
+            for x in 0..5 {
+                letter_key.push(row[x + i * 5]);
+            }
         }
-        println!("");
+        if letters.contains_key(letter_key.as_str()) {
+            output.push(*letters.get(letter_key.as_str()).unwrap());
+        } else {
+            output.push('#'); // Placeholder for invalid char
+        }
     }
-    return String::from("RKAZAJBR");
+    // Return the result string
+    output
 }
 
 #[cfg(test)]
