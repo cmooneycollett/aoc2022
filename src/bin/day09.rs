@@ -83,6 +83,18 @@ fn process_input_file(filename: &str) -> Vec<(MoveType, usize)> {
     output
 }
 
+/// Solves AOC 2022 Day 9 Part 1 // Calculates the number of unique locations visited by the tail of
+/// the rope (two knots).
+fn solve_part1(instructions: &[(MoveType, usize)]) -> usize {
+    process_rope_moves(instructions, 2)
+}
+
+/// Solves AOC 2022 Day 9 Part 2 // Calculates the number of unique locations visited by the tail of
+/// the rope (10 knots).
+fn solve_part2(instructions: &[(MoveType, usize)]) -> usize {
+    process_rope_moves(instructions, 10)
+}
+
 /// Processes the rope moves and returns the number of unique locations visited by the tail knot.
 fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> usize {
     if rope_len == 0 {
@@ -143,17 +155,6 @@ fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> us
     tail_locs.len()
 }
 
-/// Solves AOC 2022 Day 9 Part 1 // Calculates the number of unique locations visited by the tail of
-/// the rope (two knots).
-fn solve_part1(instructions: &[(MoveType, usize)]) -> usize {
-    process_rope_moves(instructions, 2)
-}
-
-/// Solves AOC 2022 Day 9 Part 2 // ###
-fn solve_part2(_instructions: &[(MoveType, usize)]) -> usize {
-    0
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -170,8 +171,7 @@ mod test {
     #[test]
     fn test_day09_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(2482, solution);
     }
 }
