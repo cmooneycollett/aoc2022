@@ -37,6 +37,35 @@ impl Monkey {
             items_inspected: 0,
         }
     }
+
+    /// Monkey inspects and throws each of its items in order.
+    pub fn inspect_and_throw(&mut self) -> Vec<(usize, u128)> {
+        let mut thrown_items: Vec<(usize, u128)> = vec![];
+        loop {
+            if self.items.is_empty() {
+                break;
+            }
+            // Inspect item
+            self.items_inspected += 1;
+            match self.op {
+                Operation::Add { value } => self.items[0] += value,
+                Operation::Mult { value } => self.items[0] *= value,
+                Operation::Pow { value } => self.items[0] = self.items[0].pow(value),
+            }
+            // Reduce worry
+            self.items[0] /= 3;
+            // Check for throw
+            let new_monkey = {
+                if self.items[0] % self.test_mod == 0 {
+                    self.true_monkey
+                } else {
+                    self.false_monkey
+                }
+            };
+            thrown_items.push((new_monkey, self.items.pop_front().unwrap()));
+        }
+        thrown_items
+    }
 }
 
 /// Represents an operator performed on the worry level of items by monkey.
@@ -125,13 +154,24 @@ fn process_input_file(filename: &str) -> Vec<Monkey> {
 }
 
 /// Solves AOC 2022 Day 11 Part 1 // ###
-fn solve_part1(input: &[Monkey]) -> u128 {
+fn solve_part1(input: &Vec<Monkey>) -> u128 {
     let mut monkeys = input.clone();
-    0
+    for _ in 0..20 {
+        // Conduct rounds
+        for i in 0..monkeys.len() {
+            let thrown_items = monkeys[i].inspect_and_throw();
+            for (new_monkey, item) in thrown_items {
+                monkeys[new_monkey].items.push_back(item);
+            }
+        }
+    }
+    let mut output = monkeys.iter().map(|m| m.items_inspected).collect::<Vec<u128>>();
+    output.sort();
+    return output.iter().rev().take(2).product();
 }
 
 /// Solves AOC 2022 Day 11 Part 2 // ###
-fn solve_part2(_input: &[Monkey]) -> u128 {
+fn solve_part2(_input: &Vec<Monkey>) -> u128 {
     0
 }
 
@@ -143,9 +183,8 @@ mod test {
     #[test]
     fn test_day11_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(99840, solution);
     }
 
     /// Tests the Day 11 Part 2 solver method against the actual problem solution.
