@@ -1,9 +1,51 @@
+use std::collections::VecDeque;
 use std::fs;
 use std::time::Instant;
 
-const PROBLEM_NAME: &str = "###";
+use regex::Regex;
+
+const PROBLEM_NAME: &str = "Monkey in the Middle";
 const PROBLEM_INPUT_FILE: &str = "./input/day11.txt";
 const PROBLEM_DAY: u64 = 11;
+
+/// Represents a single monkey.
+#[derive(Clone)]
+struct Monkey {
+    items: VecDeque<u128>,
+    op: Operation,
+    test_mod: u128,
+    true_monkey: usize,
+    false_monkey: usize,
+    items_inspected: u128,
+}
+
+impl Monkey {
+    /// Creates a new monkey, with items inspected set to 0.
+    pub fn new(
+        items: VecDeque<u128>,
+        op: Operation,
+        test_mod: u128,
+        true_monkey: usize,
+        false_monkey: usize,
+    ) -> Self {
+        Self {
+            items,
+            op,
+            test_mod,
+            true_monkey,
+            false_monkey,
+            items_inspected: 0,
+        }
+    }
+}
+
+/// Represents an operator performed on the worry level of items by monkey.
+#[derive(Clone, Copy)]
+enum Operation {
+    Add { value: u128 },
+    Mult { value: u128 },
+    Pow { value: u32 },
+}
 
 /// Processes the AOC 2022 Day 11 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -40,21 +82,57 @@ pub fn main() {
 
 /// Processes the AOC 2022 Day 11 input file in the format required by the solver functions.
 /// Returned value is ###.
-fn process_input_file(filename: &str) -> String {
+fn process_input_file(filename: &str) -> Vec<Monkey> {
     // Read contents of problem input file
-    let _raw_input = fs::read_to_string(filename).unwrap();
+    let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    unimplemented!();
+    let mut output: Vec<Monkey> = vec![];
+    let regex_monkey = Regex::new(concat!(
+        r#"Monkey (\d+):%  Starting items: (.*)%  Operation: new = old (.*)%"#,
+        r#"  Test: divisible by (\d+)%    If true: throw to monkey (\d+)%"#,
+        r#"    If false: throw to monkey (\d+)"#
+    ))
+    .unwrap();
+    for split in raw_input
+        .trim()
+        .split("\n\n")
+        .map(|group| group.replace('\n', "%"))
+    {
+        let caps = regex_monkey.captures(&split).unwrap();
+        let items: VecDeque<u128> = caps[2]
+            .split(", ")
+            .map(|value| value.parse::<u128>().unwrap())
+            .collect::<VecDeque<u128>>();
+        let op = {
+            if &caps[3] == "* old" {
+                Operation::Pow { value: 2 }
+            } else if caps[3].starts_with("+") {
+                let value = caps[3].split("+ ").nth(1).unwrap().parse::<u128>().unwrap();
+                Operation::Add { value }
+            } else if caps[3].starts_with("*") {
+                let value = caps[3].split("* ").nth(1).unwrap().parse::<u128>().unwrap();
+                Operation::Mult { value }
+            } else {
+                panic!("Day 11 - bad operation");
+            }
+        };
+        let test_mod = caps[4].parse::<u128>().unwrap();
+        let true_monkey = caps[5].parse::<usize>().unwrap();
+        let false_monkey = caps[6].parse::<usize>().unwrap();
+        output.push(Monkey::new(items, op, test_mod, true_monkey, false_monkey));
+    }
+    output
 }
 
 /// Solves AOC 2022 Day 11 Part 1 // ###
-fn solve_part1(_input: &String) -> String {
-    unimplemented!();
+fn solve_part1(input: &[Monkey]) -> u128 {
+    let mut monkeys = input.clone();
+    0
 }
 
 /// Solves AOC 2022 Day 11 Part 2 // ###
-fn solve_part2(_input: &String) -> String {
-    unimplemented!();
+fn solve_part2(_input: &[Monkey]) -> u128 {
+    0
 }
 
 #[cfg(test)]
