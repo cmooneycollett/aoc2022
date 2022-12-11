@@ -39,7 +39,7 @@ impl Monkey {
     }
 
     /// Monkey inspects and throws each of its items in order.
-    pub fn inspect_and_throw(&mut self) -> Vec<(usize, u128)> {
+    pub fn inspect_and_throw(&mut self, reduce_worry: bool, supermodulo: u128) -> Vec<(usize, u128)> {
         let mut thrown_items: Vec<(usize, u128)> = vec![];
         loop {
             if self.items.is_empty() {
@@ -52,8 +52,15 @@ impl Monkey {
                 Operation::Mult { value } => self.items[0] *= value,
                 Operation::Pow { value } => self.items[0] = self.items[0].pow(value),
             }
-            // Reduce worry
-            self.items[0] /= 3;
+            // Reduce the worry
+            if reduce_worry {
+                self.items[0] /= 3;
+            }
+            // Apply the supermodulo to reduce the item worry to stop it becoming too large
+            self.items[0] %= supermodulo;
+            if self.items[0] == 0 {
+                self.items[0] = supermodulo;
+            }
             // Check for throw
             let new_monkey = {
                 if self.items[0] % self.test_mod == 0 {
@@ -110,7 +117,7 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 11 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is vector of monkeys specified in the input file.
 fn process_input_file(filename: &str) -> Vec<Monkey> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
@@ -153,13 +160,26 @@ fn process_input_file(filename: &str) -> Vec<Monkey> {
     output
 }
 
-/// Solves AOC 2022 Day 11 Part 1 // ###
-fn solve_part1(input: &Vec<Monkey>) -> u128 {
-    let mut monkeys = input.clone();
-    for _ in 0..20 {
+/// Solves AOC 2022 Day 11 Part 1 // Calculates the resulting monkey business level after 20 rounds
+/// with worry reduction in place.
+fn solve_part1(initial_monkeys: &Vec<Monkey>) -> u128 {
+    get_monkey_business(initial_monkeys, 20, true)
+}
+
+/// Solves AOC 2022 Day 11 Part 2 // Calculates the resulting monkey business level after 10,000
+/// rounds without worry reduction in place.
+fn solve_part2(initial_monkeys: &Vec<Monkey>) -> u128 {
+    get_monkey_business(initial_monkeys, 10000, false)
+}
+
+/// Conducts a given number of rounds of monkey business.
+fn get_monkey_business(initial_monkeys: &Vec<Monkey>, rounds: u128, reduce_worry: bool) -> u128 {
+    let mut monkeys = initial_monkeys.clone();
+    let supermodulo: u128 = monkeys.iter().map(|m| m.test_mod).product();
+    for _ in 0..rounds {
         // Conduct rounds
         for i in 0..monkeys.len() {
-            let thrown_items = monkeys[i].inspect_and_throw();
+            let thrown_items = monkeys[i].inspect_and_throw(reduce_worry, supermodulo);
             for (new_monkey, item) in thrown_items {
                 monkeys[new_monkey].items.push_back(item);
             }
@@ -168,11 +188,6 @@ fn solve_part1(input: &Vec<Monkey>) -> u128 {
     let mut output = monkeys.iter().map(|m| m.items_inspected).collect::<Vec<u128>>();
     output.sort();
     return output.iter().rev().take(2).product();
-}
-
-/// Solves AOC 2022 Day 11 Part 2 // ###
-fn solve_part2(_input: &Vec<Monkey>) -> u128 {
-    0
 }
 
 #[cfg(test)]
@@ -191,8 +206,7 @@ mod test {
     #[test]
     fn test_day11_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(20683044837, solution);
     }
 }
