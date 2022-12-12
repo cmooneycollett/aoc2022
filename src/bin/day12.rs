@@ -85,9 +85,11 @@ fn solve_part1(problem_input: &(HashMap<Point2D, i64>, Point2D, Point2D)) -> u64
     get_min_steps_to_end(heightmap, start, end)
 }
 
-/// Solves AOC 2022 Day 12 Part 2 // ###
-fn solve_part2(_problem_input: &(HashMap<Point2D, i64>, Point2D, Point2D)) -> u64 {
-    0
+/// Solves AOC 2022 Day 12 Part 2 // Determines the minimum number of steps needed to reach the end
+/// point from a starting point with elevation 0.
+fn solve_part2(problem_input: &(HashMap<Point2D, i64>, Point2D, Point2D)) -> u64 {
+    let (heightmap, _, end) = problem_input;
+    get_min_steps_from_elevation0_to_end(heightmap, end)
 }
 
 /// Determines the minimum number of steps needed to reach the end point from the start point.
@@ -103,7 +105,7 @@ fn get_min_steps_to_end(heightmap: &HashMap<Point2D, i64>, start: &Point2D, end:
             return steps;
         }
         // Add the next points to visit
-        for valid_point in get_next_valid_points(heightmap, &current_loc) {
+        for valid_point in get_next_valid_points(heightmap, &current_loc, false) {
             if !visited.contains(&valid_point) {
                 visit_queue.push_back((steps + 1, valid_point));
                 visited.insert(valid_point);
@@ -111,19 +113,62 @@ fn get_min_steps_to_end(heightmap: &HashMap<Point2D, i64>, start: &Point2D, end:
         }
     }
     // Should have reached the end point already, so getting here indicates an error somewhere
-    panic!("Day 12 - did not reach the end point!");
+    panic!("Day 12 Part 1 - did not reach the end point!");
+}
+
+/// Determines the minimum number of steps needed to reach a point with elevation 0 from the given
+/// starting point.
+fn get_min_steps_from_elevation0_to_end(heightmap: &HashMap<Point2D, i64>, start: &Point2D) -> u64 {
+    let mut visit_queue: VecDeque<(u64, Point2D)> = VecDeque::new();
+    visit_queue.push_back((0, *start));
+    let mut visited: HashSet<Point2D> = HashSet::new();
+    visited.insert(*start);
+    while !visit_queue.is_empty() {
+        // Get the current point to visit
+        let (steps, current_loc) = visit_queue.pop_front().unwrap();
+        if *heightmap.get(&current_loc).unwrap() == 0 {
+            return steps;
+        }
+        // Add the next points to visit
+        for valid_point in get_next_valid_points(heightmap, &current_loc, true) {
+            if !visited.contains(&valid_point) {
+                visit_queue.push_back((steps + 1, valid_point));
+                visited.insert(valid_point);
+            }
+        }
+    }
+    // Should have reached the end point already, so getting here indicates an error somewhere
+    panic!("Day 12 Part 2 - did not reach the end point!");
 }
 
 /// Gets the next valid points to visit from the current point.
 fn get_next_valid_points(
     heightmap: &HashMap<Point2D, i64>,
-    loc: &Point2D
+    loc: &Point2D,
+    reverse_course: bool
 ) -> Vec<Point2D> {
     let mut valid_points: Vec<Point2D> = vec![];
+    // Check the points to the left, up, right and down directions
     for (delta_x, delta_y) in vec![(1, 0), (-1, 0), (0, 1), (0, -1)] {
         let check_loc = loc.check_move_point(delta_x, delta_y);
+        // Determine the left and right points so elevation check is carried out correctly
+        let left = {
+            if reverse_course {
+                &check_loc
+            } else {
+                loc
+            }
+        };
+        let right = {
+            if reverse_course {
+                loc
+            } else {
+                &check_loc
+            }
+        };
+        // Check if the checked location is a valid move from the current location
         if heightmap.contains_key(&check_loc)
-            && (heightmap.get(&check_loc).unwrap() - heightmap.get(&loc).unwrap()) <= 1
+            && (heightmap.get(right).unwrap() - heightmap.get(left).unwrap()) <= 1
         {
             valid_points.push(check_loc);
         }
@@ -147,8 +192,7 @@ mod test {
     #[test]
     fn test_day12_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(345, solution);
     }
 }
