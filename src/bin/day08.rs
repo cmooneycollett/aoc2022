@@ -63,6 +63,7 @@ fn solve_part1(tree_heights: &[Vec<u64>]) -> usize {
     let mut total_visible = 0;
     for y in 0..=max_y {
         for x in 0..=max_x {
+            // Check if tree is on the edge of the grid
             if y == 0 || y == max_y {
                 total_visible += 1;
                 continue;
@@ -71,37 +72,12 @@ fn solve_part1(tree_heights: &[Vec<u64>]) -> usize {
                 total_visible += 1;
                 continue;
             }
-            let mut sides_visible = 4;
-            // Left side
-            for new_x in 0..x {
-                if tree_heights[y][new_x] >= tree_heights[y][x] {
-                    sides_visible -= 1;
-                    break;
-                }
-            }
-            // Top side
-            for new_y in 0..y {
-                if tree_heights[new_y][x] >= tree_heights[y][x] {
-                    sides_visible -= 1;
-                    break;
-                }
-            }
-            // Right side
-            for new_x in (x + 1)..=max_x {
-                if tree_heights[y][new_x] >= tree_heights[y][x] {
-                    sides_visible -= 1;
-                    break;
-                }
-            }
-            // Bottom side
-            for new_y in (y + 1)..=max_y {
-                if tree_heights[new_y][x] >= tree_heights[y][x] {
-                    sides_visible -= 1;
-                    break;
-                }
-            }
-            // Check if tree is visible
-            if sides_visible > 0 {
+            // Check if current tree is visible from one side
+            if check_left_side_visibility(x, y, tree_heights)
+                || check_top_side_visibility(x, y, tree_heights)
+                || check_right_side_visibility(x, y, tree_heights)
+                || check_bottom_side_visibility(x, y, tree_heights)
+            {
                 total_visible += 1;
             }
         }
@@ -129,6 +105,48 @@ fn solve_part2(tree_heights: &[Vec<u64>]) -> usize {
         }
     }
     max_scenic_score
+}
+
+/// Checks if the current tree is visible from the LEFT side of the grid.
+fn check_left_side_visibility(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> bool {
+    for new_x in 0..x {
+        if tree_heights[y][new_x] >= tree_heights[y][x] {
+            return false;
+        }
+    }
+    true
+}
+
+/// Checks if the current tree is visible from the TOP side of the grid.
+fn check_top_side_visibility(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> bool {
+    for new_y in 0..y {
+        if tree_heights[new_y][x] >= tree_heights[y][x] {
+            return false;
+        }
+    }
+    true
+}
+
+/// Checks if the current tree is visible from the RIGHT side of the grid.
+fn check_right_side_visibility(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> bool {
+    let max_x = tree_heights[0].len() - 1;
+    for new_x in (x + 1)..=max_x {
+        if tree_heights[y][new_x] >= tree_heights[y][x] {
+            return false;
+        }
+    }
+    true
+}
+
+/// Checks if the current tree is visible from the BOTTOM side of the grid.
+fn check_bottom_side_visibility(x: usize, y: usize, tree_heights: &[Vec<u64>]) -> bool {
+    let max_y = tree_heights.len() - 1;
+    for new_y in (y + 1)..=max_y {
+        if tree_heights[new_y][x] >= tree_heights[y][x] {
+            return false;
+        }
+    }
+    true
 }
 
 /// Determines the LEFT side viewing distance from the current tree (x,y position).
