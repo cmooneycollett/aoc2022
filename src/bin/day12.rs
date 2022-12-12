@@ -6,7 +6,6 @@ use aoc2022::utils::cartography::Point2D;
 
 const PROBLEM_NAME: &str = "Hill Climbing Algorithm";
 const PROBLEM_INPUT_FILE: &str = "./input/day12.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day12_t001.txt";
 const PROBLEM_DAY: u64 = 12;
 
 /// Processes the AOC 2022 Day 12 input file and solves both parts of the problem. Solutions are
@@ -53,25 +52,24 @@ fn process_input_file(filename: &str) -> (HashMap<Point2D, i64>, Point2D, Point2
     let mut heightmap: HashMap<Point2D, i64> = HashMap::new();
     let mut y = 0;
     for line in raw_input.trim().lines() {
-        let mut x = 0;
         let line = line.trim();
         if line.is_empty() {
             continue;
         }
-        for c in line.chars() {
-            if c == 'S' {
-                start = Some(Point2D::new(x, y));
+        // Process the line of the heightmap
+        for (x, chr) in line.chars().enumerate() {
+            if chr == 'S' {
+                start = Some(Point2D::new(x as i64, y));
                 heightmap.insert(start.unwrap(), 0);
-            } else if c == 'E' {
-                end = Some(Point2D::new(x, y));
+            } else if chr == 'E' {
+                end = Some(Point2D::new(x as i64, y));
                 heightmap.insert(end.unwrap(), 25);
-            } else if c.is_ascii_lowercase() {
-                let height = (c as i64) - ('a' as i64);
-                heightmap.insert(Point2D::new(x, y), height);
+            } else if chr.is_ascii_lowercase() {
+                let height = (chr as i64) - ('a' as i64);
+                heightmap.insert(Point2D::new(x as i64, y), height);
             } else {
                 panic!("Day 12 - bad char in input file!");
             }
-            x += 1;
         }
         y += 1;
     }
@@ -145,12 +143,12 @@ fn get_min_steps_from_elevation0_to_end(heightmap: &HashMap<Point2D, i64>, start
 fn get_next_valid_points(
     heightmap: &HashMap<Point2D, i64>,
     loc: &Point2D,
-    reverse_course: bool
+    reverse_course: bool,
 ) -> Vec<Point2D> {
     let mut valid_points: Vec<Point2D> = vec![];
     // Check the points to the left, up, right and down directions
-    for (delta_x, delta_y) in vec![(1, 0), (-1, 0), (0, 1), (0, -1)] {
-        let check_loc = loc.check_move_point(delta_x, delta_y);
+    for (delta_x, delta_y) in &[(1, 0), (-1, 0), (0, 1), (0, -1)] {
+        let check_loc = loc.check_move_point(*delta_x, *delta_y);
         // Determine the left and right points so elevation check is carried out correctly
         let left = {
             if reverse_course {
