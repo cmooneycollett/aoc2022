@@ -54,7 +54,7 @@ fn process_input_file(filename: &str) -> Vec<(String, String)> {
     // Process input file contents into data structure
     let mut output: Vec<(String, String)> = vec![];
     for pair in raw_input.trim().split("\n\n") {
-        let pair_strings = pair.lines().map(|line| line).collect::<Vec<&str>>();
+        let pair_strings = pair.lines().collect::<Vec<&str>>();
         output.push((pair_strings[0].to_string(), pair_strings[1].to_string()));
     }
     output
@@ -64,6 +64,7 @@ fn process_input_file(filename: &str) -> Vec<(String, String)> {
 /// the correct order.
 fn solve_part1(input: &[(String, String)]) -> usize {
     let mut index_sum = 0;
+    // Check which packet pairs are in the right order
     for (i, (left, right)) in input.iter().enumerate() {
         if compare_left_and_right_packets(left, right) {
             index_sum += i + 1;
@@ -72,7 +73,7 @@ fn solve_part1(input: &[(String, String)]) -> usize {
     index_sum
 }
 
-/// Solves AOC 2022 Day 13 Part 2 // ###
+/// Solves AOC 2022 Day 13 Part 2 // Determines the decoder key for the distress signal.
 fn solve_part2(input: &[(String, String)]) -> usize {
     // Add all packets into the vector
     let mut packets: Vec<String> = vec![];
@@ -114,7 +115,7 @@ fn solve_part2(input: &[(String, String)]) -> usize {
 
 /// Compares the left and right packets, represented by vector of their tokens. Returns true if the
 /// packets are in the right order. Otherwise, returns false.
-fn compare_left_and_right_packets(left_packet: &String, right_packet: &String) -> bool {
+fn compare_left_and_right_packets(left_packet: &str, right_packet: &str) -> bool {
     // Initialise cursors
     let mut c_left: usize = 0;
     let mut c_right: usize = 0;
@@ -154,27 +155,26 @@ fn compare_left_and_right_packets(left_packet: &String, right_packet: &String) -
                 c_right += 1;
             }
         }
-        // Check if both current elements are integers
-        let left_num = left[c_left].parse::<u64>();
-        let right_num = right[c_right].parse::<u64>();
-        if left_num.is_ok() && right_num.is_ok() {
-            let left_num = left_num.unwrap();
-            let right_num = right_num.unwrap();
-            if left_num < right_num {
-                return true;
-            } else if left_num > right_num {
-                return false;
-            }
-        } else if left_num.is_err() && right_num.is_err() {
-            // both items are lists
-            ()
-        } else if right_num.is_ok() {
+        // Check if current tokens are both lists, both integers or a list and an integer
+        let left_result = left[c_left].parse::<u64>();
+        let right_result = right[c_right].parse::<u64>();
+        if right_result.is_ok() && left_result.is_err() {
+            // Replace current token of right with list
             right.insert(c_right, String::from("["));
             right.insert(c_right + 2, String::from("]"));
-        } else {
+        } else if left_result.is_ok() && right_result.is_err() {
+            // Replace current token of left with left
             left.insert(c_left, String::from("["));
             left.insert(c_left + 2, String::from("]"));
+        } else if let (Ok(left_val), Ok(right_val)) = (left_result, right_result) {
+            // Check if integers in order
+            match left_val.cmp(&right_val) {
+                Ordering::Less => return true,
+                Ordering::Equal => (),
+                Ordering::Greater => return false,
+            }
         }
+        // Case where both left and right are open list token not checked specifically
         c_left += 1;
         c_right += 1;
     }
