@@ -55,7 +55,8 @@ fn process_input_file(filename: &str) -> Vec<(String, String)> {
     output
 }
 
-/// Solves AOC 2022 Day 13 Part 1 // ###
+/// Solves AOC 2022 Day 13 Part 1 // Returns the sum of the pair indices for the pairs that are in
+/// the correct order.
 fn solve_part1(input: &[(String, String)]) -> usize {
     let mut index_sum = 0;
     let regex_line = Regex::new(r"(\[|\]|\d+)").unwrap();
@@ -68,7 +69,7 @@ fn solve_part1(input: &[(String, String)]) -> usize {
             .find_iter(right)
             .map(|elem| elem.as_str().to_string())
             .collect::<Vec<String>>();
-        if compare_left_and_right_string(&left_elems, &right_elems) {
+        if compare_left_and_right_packets(&left_elems, &right_elems) {
             index_sum += i + 1;
         }
     }
@@ -80,7 +81,9 @@ fn solve_part2(_input: &[(String, String)]) -> usize {
     0
 }
 
-fn compare_left_and_right_string(left_elems: &Vec<String>, right_elems: &Vec<String>) -> bool {
+/// Compares the left and right packets, represented by vector of their tokens. Returns true if the
+/// packets are in the right order. Otherwise, returns false.
+fn compare_left_and_right_packets(left_elems: &Vec<String>, right_elems: &Vec<String>) -> bool {
     // Initialise cursors
     let mut c_left: usize = 0;
     let mut c_right: usize = 0;
@@ -88,19 +91,30 @@ fn compare_left_and_right_string(left_elems: &Vec<String>, right_elems: &Vec<Str
     let mut right = right_elems.clone();
     loop {
         // Move out of end of list element
-        while c_left < left.len() && left[c_left] == "]" {
-            c_left += 1;
-        }
-        while c_right < right.len() && right[c_right] == "]" {
-            c_right += 1;
-        }
-        // Check bounds
-        if c_left >= left.len() {
-            // left runs out of elements first
-            return true;
-        } else if c_right >= right.len() {
-            // right runs out of elements first
-            return false;
+        loop {
+            // Check bounds
+            if c_left >= left.len() {
+                // left runs out of elements first
+                return true;
+            } else if c_right >= right.len() {
+                // right runs out of elements first
+                return false;
+            }
+            // Check that both left and right are not at the end of a list
+            if left[c_left] != "]" && right[c_right] != "]" {
+                break;
+            }
+            if left[c_left] == "]" && right[c_right] != "]" {
+                // left has reached end of a list before right
+                return true;
+            } else if left[c_left] != "]" && right[c_right] == "]" {
+                // right has reached end of a list before left
+                return false;
+            } else {
+                // Both left and right at end of list with same number of elements
+                c_left += 1;
+                c_right += 1;
+            }
         }
         // Check if both current elements are integers
         let left_num = left[c_left].parse::<u64>();
@@ -136,9 +150,8 @@ mod test {
     #[test]
     fn test_day13_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(6076, solution);
     }
 
     /// Tests the Day 13 Part 2 solver method against the actual problem solution.
