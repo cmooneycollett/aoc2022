@@ -1,12 +1,17 @@
+use std::cmp::Ordering;
 use std::fs;
 use std::time::Instant;
 
+use lazy_static::lazy_static;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Distress Signal";
 const PROBLEM_INPUT_FILE: &str = "./input/day13.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day13_t001.txt";
 const PROBLEM_DAY: u64 = 13;
+
+lazy_static! {
+    static ref REGEX_LINE: Regex = Regex::new(r"(\[|\]|\d+)").unwrap();
+}
 
 /// Processes the AOC 2022 Day 13 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -59,17 +64,8 @@ fn process_input_file(filename: &str) -> Vec<(String, String)> {
 /// the correct order.
 fn solve_part1(input: &[(String, String)]) -> usize {
     let mut index_sum = 0;
-    let regex_line = Regex::new(r"(\[|\]|\d+)").unwrap();
     for (i, (left, right)) in input.iter().enumerate() {
-        let left_elems = regex_line
-            .find_iter(left)
-            .map(|elem| elem.as_str().to_string())
-            .collect::<Vec<String>>();
-        let right_elems = regex_line
-            .find_iter(right)
-            .map(|elem| elem.as_str().to_string())
-            .collect::<Vec<String>>();
-        if compare_left_and_right_packets(&left_elems, &right_elems) {
+        if compare_left_and_right_packets(left, right) {
             index_sum += i + 1;
         }
     }
@@ -77,18 +73,60 @@ fn solve_part1(input: &[(String, String)]) -> usize {
 }
 
 /// Solves AOC 2022 Day 13 Part 2 // ###
-fn solve_part2(_input: &[(String, String)]) -> usize {
-    0
+fn solve_part2(input: &[(String, String)]) -> usize {
+    // Add all packets into the vector
+    let mut packets: Vec<String> = vec![];
+    for (left, right) in input {
+        packets.push(left.to_string());
+        packets.push(right.to_string());
+    }
+    // Add the divider packets
+    packets.push(String::from("[[2]]"));
+    packets.push(String::from("[[6]]"));
+    // Sort the packets
+    packets.sort_by(|left, right| {
+        if compare_left_and_right_packets(left, right) {
+            Ordering::Less
+        } else if left == right {
+            Ordering::Equal
+        } else {
+            Ordering::Greater
+        }
+    });
+    // Get the indices of the divider packets
+    let mut index2: Option<usize> = None;
+    let mut index6: Option<usize> = None;
+    for (i, packet) in packets.iter().enumerate() {
+        if packet == "[[2]]" {
+            index2 = Some(i + 1);
+        } else if packet == "[[6]]" {
+            index6 = Some(i + 1);
+        }
+        if index2.is_some() && index6.is_some() {
+            break;
+        }
+    }
+    if index2.is_none() || index6.is_none() {
+        panic!("Day 13 Part 2 - could not find both divider packets in sorted vector!");
+    }
+    index2.unwrap() * index6.unwrap()
 }
 
 /// Compares the left and right packets, represented by vector of their tokens. Returns true if the
 /// packets are in the right order. Otherwise, returns false.
-fn compare_left_and_right_packets(left_elems: &Vec<String>, right_elems: &Vec<String>) -> bool {
+fn compare_left_and_right_packets(left_packet: &String, right_packet: &String) -> bool {
     // Initialise cursors
     let mut c_left: usize = 0;
     let mut c_right: usize = 0;
-    let mut left = left_elems.clone();
-    let mut right = right_elems.clone();
+    // Tokenise packets
+    let mut left = REGEX_LINE
+        .find_iter(left_packet)
+        .map(|elem| elem.as_str().to_string())
+        .collect::<Vec<String>>();
+    let mut right = REGEX_LINE
+        .find_iter(right_packet)
+        .map(|elem| elem.as_str().to_string())
+        .collect::<Vec<String>>();
     loop {
         // Move out of end of list element
         loop {
@@ -158,8 +196,7 @@ mod test {
     #[test]
     fn test_day13_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(24805, solution);
     }
 }
