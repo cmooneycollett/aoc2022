@@ -89,17 +89,34 @@ fn process_input_file(filename: &str) -> HashMap<Point2D, TileType> {
     cave_map
 }
 
-/// Solves AOC 2022 Day 14 Part 1 // ###
+/// Solves AOC 2022 Day 14 Part 1 // Determines the number of units of sand that come to rest before
+/// sand falls into the abyss.
 fn solve_part1(input: &HashMap<Point2D, TileType>) -> usize {
+    simulate_cave_sand_falling(input, false)
+}
+
+/// Solves AOC 2022 Day 14 Part 2 // Determines the number of units of sand that come to rest when
+/// the cave floor is included.
+fn solve_part2(input: &HashMap<Point2D, TileType>) -> usize {
+    simulate_cave_sand_falling(input, true)
+}
+
+/// Simulates the sand falling into the cave, starting at (x,y):(500,0). Returns the number of units
+/// of sand that come to rest.
+fn simulate_cave_sand_falling(input: &HashMap<Point2D, TileType>, include_floor: bool) -> usize {
     let mut cave_map = input.clone();
     let max_y = cave_map.keys().map(|loc| loc.get_y()).max().unwrap();
     loop {
         let mut sand_loc = Point2D::new(500, 0);
-        let mut sand_in_abyss = false;
+        let mut reached_base_case = false;
         loop {
             // Check if the sand is in the abyss
-            if sand_loc.get_y() > max_y {
-                sand_in_abyss = true;
+            if !include_floor && sand_loc.get_y() > max_y {
+                reached_base_case = true;
+                break;
+            }
+            if include_floor && sand_loc.get_y() == max_y + 1 {
+                cave_map.insert(sand_loc, TileType::Sand);
                 break;
             }
             // Check where the sand moves to
@@ -118,19 +135,16 @@ fn solve_part1(input: &HashMap<Point2D, TileType>) -> usize {
             } else {
                 // Sand comes to rest
                 cave_map.insert(sand_loc, TileType::Sand);
+                if include_floor && sand_loc.get_x() == 500 && sand_loc.get_y() == 0 {
+                    reached_base_case = true;
+                }
                 break;
             }
-
         }
-        if sand_in_abyss {
+        if reached_base_case {
             return cave_map.values().filter(|tile| **tile == TileType::Sand).count();
         }
     }
-}
-
-/// Solves AOC 2022 Day 14 Part 2 // ###
-fn solve_part2(_input: &HashMap<Point2D, TileType>) -> usize {
-    0
 }
 
 #[cfg(test)]
@@ -149,8 +163,7 @@ mod test {
     #[test]
     fn test_day14_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(23390, solution);
     }
 }
