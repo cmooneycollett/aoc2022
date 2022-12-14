@@ -12,7 +12,7 @@ const PROBLEM_DAY: u64 = 14;
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum TileType {
     Rock,
-    Sand
+    Sand,
 }
 
 /// Processes the AOC 2022 Day 14 input file and solves both parts of the problem. Solutions are
@@ -56,23 +56,30 @@ fn process_input_file(filename: &str) -> HashMap<Point2D, TileType> {
     // Process input file contents into data structure
     let mut cave_map: HashMap<Point2D, TileType> = HashMap::new();
     for line in raw_input.lines() {
+        // Trim line and skip if empty
         let line = line.trim();
         if line.is_empty() {
             continue;
         }
+        // Split the line into points in the rock segments
         let mut points: Vec<(i64, i64)> = vec![];
         for point_raw in line.split(" -> ") {
-            let pair = point_raw.split(",").map(|x| x.parse::<i64>().unwrap()).collect::<Vec<i64>>();
+            let pair = point_raw
+                .split(',')
+                .map(|x| x.parse::<i64>().unwrap())
+                .collect::<Vec<i64>>();
             points.push((pair[0], pair[1]));
         }
-        // Draw the rock
+        // Draw the rock segments
         for i in 1..points.len() {
+            // Determine the end points of the rock segments
             let x_vals = vec![points[i - 1].0, points[i].0];
             let y_vals = vec![points[i - 1].1, points[i].1];
             let x_from = *x_vals.iter().min().unwrap();
             let y_from = *y_vals.iter().min().unwrap();
             let x_to = *x_vals.iter().max().unwrap();
             let y_to = *y_vals.iter().max().unwrap();
+            // Check if the rock segment is horizontal or vertical
             if x_from == x_to {
                 for y in y_from..=y_to {
                     cave_map.insert(Point2D::new(x_from, y), TileType::Rock);
@@ -106,8 +113,9 @@ fn solve_part2(input: &HashMap<Point2D, TileType>) -> usize {
 fn simulate_cave_sand_falling(input: &HashMap<Point2D, TileType>, include_floor: bool) -> usize {
     let mut cave_map = input.clone();
     let max_y = cave_map.keys().map(|loc| loc.get_y()).max().unwrap();
+    let sand_origin = Point2D::new(500, 0);
     loop {
-        let mut sand_loc = Point2D::new(500, 0);
+        let mut sand_loc = sand_origin;
         let mut reached_base_case = false;
         loop {
             // Check if the sand is in the abyss
@@ -131,18 +139,23 @@ fn simulate_cave_sand_falling(input: &HashMap<Point2D, TileType>, include_floor:
             } else if !cave_map.contains_key(&sand_loc.check_move_point(1, 1)) {
                 // Try to move down diag right
                 sand_loc.move_point(1, 1);
-                continue
+                continue;
             } else {
                 // Sand comes to rest
                 cave_map.insert(sand_loc, TileType::Sand);
-                if include_floor && sand_loc.get_x() == 500 && sand_loc.get_y() == 0 {
+                if include_floor && sand_loc == sand_origin {
                     reached_base_case = true;
                 }
                 break;
             }
         }
+        // Check if base case has been reached - return the number of sand units at rest
         if reached_base_case {
-            return cave_map.values().filter(|tile| **tile == TileType::Sand).count();
+            return cave_map
+                .values()
+                .copied()
+                .filter(|tile| *tile == TileType::Sand)
+                .count();
         }
     }
 }
