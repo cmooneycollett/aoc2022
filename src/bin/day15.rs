@@ -1,4 +1,4 @@
-use std::collections::{HashSet, VecDeque};
+use std::collections::HashSet;
 use std::fs;
 use std::time::Instant;
 
@@ -8,7 +8,6 @@ use aoc2022::utils::cartography::Point2D;
 
 const PROBLEM_NAME: &str = "Beacon Exclusion Zone";
 const PROBLEM_INPUT_FILE: &str = "./input/day15.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day15_t001.txt";
 const PROBLEM_DAY: u64 = 15;
 
 /// Processes the AOC 2022 Day 15 input file and solves both parts of the problem. Solutions are
@@ -80,8 +79,11 @@ fn process_input_file(filename: &str) -> Vec<(Point2D, Point2D)> {
 fn solve_part1(input: &[(Point2D, Point2D)]) -> usize {
     let mut target_row_locs: HashSet<Point2D> = HashSet::new();
     let target_row = 2000000;
-    // let target_row = 10;
-    let beacons_in_target_row = input.iter().map(|x| x.1).filter(|x| x.get_y() == target_row).collect::<HashSet<Point2D>>();
+    let beacons_in_target_row = input
+        .iter()
+        .map(|x| x.1)
+        .filter(|x| x.get_y() == target_row)
+        .collect::<HashSet<Point2D>>();
     for (loc_sens, loc_beac) in input {
         let output = find_beacon_exclusion_locations_in_row(loc_sens, loc_beac, target_row);
         target_row_locs.extend(output);
@@ -105,60 +107,23 @@ fn find_beacon_exclusion_locations_in_row(
     loc_beac: &Point2D,
     target_row: i64,
 ) -> HashSet<Point2D> {
-    let m_dist = loc_sens.calculate_manhattan_distance(loc_beac);
-    let mut visited: HashSet<Point2D> = HashSet::new();
-    let mut visit_queue: VecDeque<Point2D> = VecDeque::new();
+    let m_dist = loc_sens.calculate_manhattan_distance(loc_beac) as i64;
+    let delta_y = (loc_sens.get_y() - target_row).abs();
     let mut output: HashSet<Point2D> = HashSet::new();
-    visited.insert(*loc_sens);
-    visit_queue.push_back(*loc_sens);
-    // Find min and max y
-    let y_vals: Vec<i64> = vec![loc_sens.get_y(), loc_beac.get_y()];
-    let y_min: i64 = *y_vals.iter().min().unwrap();
-    let y_min = {
-        if y_min > target_row {
-            target_row
-        } else {
-            y_min
-        }
-    };
-    let y_max: i64 = *y_vals.iter().max().unwrap();
-    let y_max = {
-        if y_max < target_row {
-            target_row
-        } else {
-            y_max
-        }
-    };
-    while !visit_queue.is_empty() {
-        // Get current location to visit
-        let loc = visit_queue.pop_front().unwrap();
-        if loc.get_y() == target_row {
-            output.insert(loc);
-            continue;
-        }
-        // Try next valid locations
-        for next_loc in get_next_valid_points(&loc) {
-            if !visited.contains(&next_loc)
-                && next_loc.calculate_manhattan_distance(loc_sens) <= m_dist
-                && next_loc.get_y() >= y_min
-                && next_loc.get_y() <= y_max
-            {
-                visited.insert(next_loc);
-                visit_queue.push_back(next_loc);
-            }
-        }
+    for x in (loc_sens.get_x() - m_dist + delta_y)..=(loc_sens.get_x() + m_dist - delta_y) {
+        output.insert(Point2D::new(x, target_row));
     }
     output
 }
 
-/// Gets the four locations to the left, right, top and bottom of the given location.
-fn get_next_valid_points(loc: &Point2D) -> Vec<Point2D> {
-    let mut output: Vec<Point2D> = vec![];
-    for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-        output.push(loc.check_move_point(dx, dy));
-    }
-    output
-}
+// /// Gets the four locations to the left, right, top and bottom of the given location.
+// fn get_next_valid_points(loc: &Point2D) -> Vec<Point2D> {
+//     let mut output: Vec<Point2D> = vec![];
+//     for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+//         output.push(loc.check_move_point(dx, dy));
+//     }
+//     output
+// }
 
 #[cfg(test)]
 mod test {
@@ -168,9 +133,8 @@ mod test {
     #[test]
     fn test_day15_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(5394423, solution);
     }
 
     /// Tests the Day 15 Part 2 solver method against the actual problem solution.
