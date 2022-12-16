@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::time::Instant;
 
-use itertools::Itertools;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Proboscidea Volcanium";
@@ -79,6 +78,7 @@ fn get_visitable_flow_valves(
     start_valve: &str,
     valve_flow_rates: &HashMap<String, u64>,
     valve_connections: &HashMap<String, Vec<String>>,
+    valid_valves: &HashSet<String>,
 ) -> HashMap<String, u64> {
     let mut visit_queue: VecDeque<(u64, String)> = VecDeque::new();
     let mut visited: HashSet<String> = HashSet::new();
@@ -88,7 +88,7 @@ fn get_visitable_flow_valves(
     while !visit_queue.is_empty() {
         // Get next valve to visit
         let (steps, valve) = visit_queue.pop_front().unwrap();
-        if *valve_flow_rates.get(&valve).unwrap() > 0 {
+        if valid_valves.contains(valve.as_str()) {
             output.insert(valve.to_string(), steps + 1);
         }
         // Get next nodes to visit
@@ -126,8 +126,11 @@ fn determine_possible_paths_recursive(
     valve_connections: &HashMap<String, Vec<String>>,
     valve_activation_times: &HashMap<String, HashMap<String, u64>>,
 ) {
-    for next_valve in valve_connections.get(current_valve).unwrap() {
-        if current_path.contains(next_valve)
+    for next_valve in valve_activation_times.keys() {
+        println!("current valve: {} // next valve: {}", current_valve, next_valve);
+        if next_valve == "AA"
+            || current_path.contains(next_valve)
+            || !valve_activation_times.contains_key(next_valve)
             || *valve_activation_times
                 .get(current_valve)
                 .unwrap()
@@ -155,53 +158,6 @@ fn determine_possible_paths_recursive(
         );
     }
     possible_paths.push(current_path);
-}
-
-/// Solves AOC 2022 Day 16 Part 1 // ###
-fn solve_part1(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> u64 {
-    let (valve_flow_rates, valve_connections) = input;
-    // let mut open_valves: HashSet<String> = HashSet::new();
-    let valves_with_flow = valve_flow_rates
-        .iter()
-        .filter(|(_, v)| **v > 0)
-        .map(|entry| entry.0.to_string())
-        .collect::<Vec<String>>();
-    let mut valve_activation_times: HashMap<String, HashMap<String, u64>> = HashMap::new();
-    for valve in valve_flow_rates.keys() {
-        let activation_times =
-            get_visitable_flow_valves(valve, valve_flow_rates, valve_connections);
-        valve_activation_times.insert(valve.to_string(), activation_times);
-    }
-    let mut max_pressure_released = 0;
-    let mut old_valves_opened: Vec<String> = vec![];
-    let mut perms_checked: u64 = 0;
-    for perm in valves_with_flow.iter().permutations(valves_with_flow.len()) {
-        perms_checked += 1;
-        if perms_checked % 1000000 == 0 {
-            println!("[*] perms checked: {}", perms_checked);
-        }
-        let mut skip_perm = true;
-        for i in 0..old_valves_opened.len() {
-            if *perm[i] != old_valves_opened[i] {
-                skip_perm = false;
-                break;
-            }
-        }
-        if skip_perm && old_valves_opened.len() > 0 {
-            continue;
-        }
-        println!("[+] trying perm: {:?}", perm);
-        let (pressure_released, valves_opened) =
-            try_permutation_for_pressure(&perm, &valve_activation_times, valve_flow_rates);
-        old_valves_opened = valves_opened.to_vec();
-        // println!(">>>> valves opened: {:?}", valves_opened);
-        if pressure_released > max_pressure_released {
-            max_pressure_released = pressure_released;
-            println!(">>>> pressure released: {}", pressure_released);
-            println!(">>>> * NEW MAXIMUM *");
-        }
-    }
-    max_pressure_released
 }
 
 fn try_permutation_for_pressure(
@@ -237,6 +193,71 @@ fn try_permutation_for_pressure(
         valves_opened.push(valve_to.to_string());
     }
     (pressure_released, valves_opened)
+}
+
+/// Gets the time required to move from a valve with flow (or the start valve "AA") to another valve
+/// with flow.
+fn get_valve_activation_times(
+    valve_flow_rates: &HashMap<String, u64>,
+    valve_connections: &HashMap<String, Vec<String>>,
+) -> HashMap<String, HashMap<String, u64>> {
+    let mut output: HashMap<String, HashMap<String, u64>> = HashMap::new();
+    let mut valid_valves: HashSet<String> = HashSet::new();
+    valid_valves.insert(String::from("AA"));
+    for (valve, flow_rate) in valve_flow_rates.iter() {
+        if *flow_rate == 0 {
+            continue;
+        }
+        valid_valves.insert(valve.to_string());
+    }
+    for valve in valid_valves.iter() {
+        let valve_activation_times = get_visitable_flow_valves(&valve, valve_flow_rates, valve_connections, &valid_valves);
+        output.insert(valve.to_string(), valve_activation_times);
+    }
+    output
+}
+
+fn get_pressure_released_for_path(path: &Vec<String>, valve_flow_rates: &HashMap<String, u64>, valve_activation_times: &HashMap<String, HashMap<String, u64>>) -> u64 {
+    let mut minutes_remaining = 30;
+    let mut pressure_per_minute = 0;
+    let mut total_pressure_released = 0;
+    for i in 0..path.len() {
+        // Get activation time
+        let activation_time = {
+            if i == 0 {
+                valve_activation_times.get("AA").unwrap().get(&path[i]).unwrap()
+            } else {
+                valve_activation_times.get(&path[i - 1]).unwrap().get(&path[i]).unwrap()
+            }
+        };
+        // Sum up pressure released while travelling to and activating valve
+        total_pressure_released += pressure_per_minute * activation_time;
+        // Add new valve's flow rate to the pressure released per minute
+        pressure_per_minute += valve_flow_rates.get(&path[i]).unwrap();
+        // Reduce the time remaining by the activation time
+        minutes_remaining -= activation_time;
+    }
+    // Use up the remaining time to release pressure
+    total_pressure_released += pressure_per_minute * minutes_remaining;
+    // Result the resulting pressure released
+    total_pressure_released
+}
+
+/// Solves AOC 2022 Day 16 Part 1 // ###
+fn solve_part1(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> u64 {
+    let (valve_flow_rates, valve_connections) = input;
+    let valve_activation_times = &get_valve_activation_times(valve_flow_rates, valve_connections);
+    let possible_paths = determine_possible_paths(valve_connections, valve_activation_times);
+    let mut max_pressure_released = 0;
+    for path in possible_paths.iter() {
+        let pressure_released = get_pressure_released_for_path(path, valve_flow_rates, valve_activation_times);
+        println!("[+] Pressure released: {} // path: {:?}", pressure_released, path);
+        if pressure_released > max_pressure_released {
+            max_pressure_released = pressure_released;
+            println!(">>>> * NEW MAXIMUM * <<<<");
+        }
+    }
+    max_pressure_released
 }
 
 /// Solves AOC 2022 Day 16 Part 2 // ###
