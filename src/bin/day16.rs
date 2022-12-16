@@ -5,8 +5,8 @@ use std::time::Instant;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Proboscidea Volcanium";
-// const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
-const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
+const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
 const PROBLEM_DAY: u64 = 16;
 
 /// Processes the AOC 2022 Day 16 input file and solves both parts of the problem. Solutions are
@@ -245,35 +245,35 @@ fn solve_part2(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> 
     let valve_activation_times = &get_valve_activation_times(valve_flow_rates, valve_connections);
     // Find my paths
     let possible_paths = determine_possible_paths(valve_connections, valve_activation_times, 26);
-    // Find the elephant paths
-    let possible_paths_simul = determine_possible_paths_simul(&possible_paths, valve_connections, valve_activation_times, 26);
-    // Find the maximum pressure released
     let mut maximum_pressure_released = 0;
-    for (protag_path, ele_path) in possible_paths_simul.iter() {
-        let mut pressure_released = 0;
-        pressure_released += get_pressure_released_for_path(protag_path, valve_flow_rates, valve_activation_times, 26);
-        pressure_released += get_pressure_released_for_path(ele_path, valve_flow_rates, valve_activation_times, 26);
-        if pressure_released > maximum_pressure_released {
-            maximum_pressure_released = pressure_released;
+    let mut paths_tested = 0;
+    for protag_path in possible_paths.iter() {
+        paths_tested += 1;
+        if paths_tested % 100 == 0 {
+            println!("[+] Testing path {} / {}", paths_tested, possible_paths.len());
+        }
+        let elephant_paths = determine_possible_paths_simul(&protag_path, valve_connections, valve_activation_times, 26);
+        for ele_path in elephant_paths {
+            let mut pressure_released = 0;
+            pressure_released += get_pressure_released_for_path(&protag_path, valve_flow_rates, valve_activation_times, 26);
+            pressure_released += get_pressure_released_for_path(&ele_path, valve_flow_rates, valve_activation_times, 26);
+            if pressure_released > maximum_pressure_released {
+                maximum_pressure_released = pressure_released;
+            }
         }
     }
     maximum_pressure_released
 }
 
 fn determine_possible_paths_simul(
-    possible_paths: &Vec<Vec<String>>,
+    protag_path: &Vec<String>,
     valve_connections: &HashMap<String, Vec<String>>,
     valve_activation_times: &HashMap<String, HashMap<String, u64>>,
     minutes_allowed: u64
-) -> Vec<(Vec<String>, Vec<String>)> {
-    let mut output: Vec<(Vec<String>, Vec<String>)> = vec![];
-    for path in possible_paths {
-        println!("Getting elephant paths for: {:?}", path);
-        let mut possible_paths_simul: Vec<(Vec<String>, Vec<String>)> = vec![];
-        determine_possible_paths_simul_recursive(path, "AA", vec![], minutes_allowed, &mut possible_paths_simul, valve_connections, valve_activation_times);
-        output.extend(possible_paths_simul);
-    }
-    output
+) -> Vec<Vec<String>> {
+    let mut elephant_paths: Vec<Vec<String>> = vec![];
+    determine_possible_paths_simul_recursive(protag_path, "AA", vec![], minutes_allowed, &mut elephant_paths, valve_connections, valve_activation_times);
+    elephant_paths
 }
 
 fn determine_possible_paths_simul_recursive(
@@ -281,7 +281,7 @@ fn determine_possible_paths_simul_recursive(
     current_valve: &str,
     current_path: Vec<String>,
     time_remaining: u64,
-    possible_paths: &mut Vec<(Vec<String>, Vec<String>)>,
+    possible_paths: &mut Vec<Vec<String>>,
     valve_connections: &HashMap<String, Vec<String>>,
     valve_activation_times: &HashMap<String, HashMap<String, u64>>,
 ) {
@@ -317,7 +317,7 @@ fn determine_possible_paths_simul_recursive(
             valve_activation_times,
         );
     }
-    possible_paths.push((protagonist_path.to_vec(), current_path));
+    possible_paths.push(current_path);
 }
 
 #[cfg(test)]
@@ -336,8 +336,7 @@ mod test {
     #[test]
     fn test_day16_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(2528, solution);
     }
 }
