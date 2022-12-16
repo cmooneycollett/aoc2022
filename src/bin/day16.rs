@@ -5,8 +5,8 @@ use std::time::Instant;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Proboscidea Volcanium";
-// const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
-const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
+const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
 const PROBLEM_DAY: u64 = 16;
 
 /// Processes the AOC 2022 Day 16 input file and solves both parts of the problem. Solutions are
@@ -127,7 +127,7 @@ fn determine_possible_paths_recursive(
     valve_activation_times: &HashMap<String, HashMap<String, u64>>,
 ) {
     for next_valve in valve_activation_times.keys() {
-        println!("current valve: {} // next valve: {}", current_valve, next_valve);
+        // println!("current valve: {} // next valve: {}", current_valve, next_valve);
         if next_valve == "AA"
             || current_path.contains(next_valve)
             || !valve_activation_times.contains_key(next_valve)
@@ -160,40 +160,6 @@ fn determine_possible_paths_recursive(
     possible_paths.push(current_path);
 }
 
-fn try_permutation_for_pressure(
-    perm: &Vec<&String>,
-    valve_activation_times: &HashMap<String, HashMap<String, u64>>,
-    valve_flow_rates: &HashMap<String, u64>,
-) -> (u64, Vec<String>) {
-    let mut time_remaining = 30;
-    let mut pressure_released = 0;
-    let mut pressure_per_minute = 0;
-    let mut valves_opened: Vec<String> = vec![];
-    for i in 0..perm.len() {
-        let valve_from = {
-            if i == 0 {
-                "AA"
-            } else {
-                perm[i - 1]
-            }
-        };
-        let valve_to = perm[i];
-        let activation_time = *valve_activation_times
-            .get(valve_from)
-            .unwrap()
-            .get(valve_to)
-            .unwrap();
-        if activation_time >= time_remaining {
-            pressure_released += pressure_per_minute * time_remaining;
-            break;
-        }
-        time_remaining -= activation_time;
-        pressure_released += pressure_per_minute * activation_time;
-        pressure_per_minute += valve_flow_rates.get(valve_to).unwrap();
-        valves_opened.push(valve_to.to_string());
-    }
-    (pressure_released, valves_opened)
-}
 
 /// Gets the time required to move from a valve with flow (or the start valve "AA") to another valve
 /// with flow.
@@ -251,10 +217,10 @@ fn solve_part1(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> 
     let mut max_pressure_released = 0;
     for path in possible_paths.iter() {
         let pressure_released = get_pressure_released_for_path(path, valve_flow_rates, valve_activation_times);
-        println!("[+] Pressure released: {} // path: {:?}", pressure_released, path);
+        // println!("[+] Pressure released: {} // path: {:?}", pressure_released, path);
         if pressure_released > max_pressure_released {
             max_pressure_released = pressure_released;
-            println!(">>>> * NEW MAXIMUM * <<<<");
+            // println!(">>>> * NEW MAXIMUM * <<<<");
         }
     }
     max_pressure_released
@@ -273,9 +239,8 @@ mod test {
     #[test]
     fn test_day16_p1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(1767, solution);
     }
 
     /// Tests the Day 16 Part 2 solver method against the actual problem solution.
