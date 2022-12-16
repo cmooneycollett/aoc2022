@@ -1,4 +1,3 @@
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fs;
 use std::ops::RangeInclusive;
@@ -10,9 +9,8 @@ use aoc2022::utils::cartography::Point2D;
 
 const PROBLEM_NAME: &str = "Beacon Exclusion Zone";
 const PROBLEM_INPUT_FILE: &str = "./input/day15.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day15_t001.txt";
 const PROBLEM_DAY: u64 = 15;
-
+const PART1_TARGET_ROW: i64 = 2000000;
 const PART2_ROW_LIMIT: i64 = 4000000;
 
 /// Processes the AOC 2022 Day 15 input file and solves both parts of the problem. Solutions are
@@ -83,14 +81,13 @@ fn process_input_file(filename: &str) -> Vec<(Point2D, Point2D)> {
 /// which cannot contain a beacon.
 fn solve_part1(input: &[(Point2D, Point2D)]) -> usize {
     let mut target_row_locs: HashSet<Point2D> = HashSet::new();
-    let target_row = 2000000;
     let beacons_in_target_row = input
         .iter()
         .map(|x| x.1)
-        .filter(|x| x.get_y() == target_row)
+        .filter(|x| x.get_y() == PART1_TARGET_ROW)
         .collect::<HashSet<Point2D>>();
     for (loc_sens, loc_beac) in input {
-        let output = find_beacon_exclusion_locations_in_row(loc_sens, loc_beac, target_row);
+        let output = find_beacon_exclusion_locations_in_row(loc_sens, loc_beac, PART1_TARGET_ROW);
         target_row_locs.extend(output);
     }
     for beacon in beacons_in_target_row {
@@ -101,7 +98,7 @@ fn solve_part1(input: &[(Point2D, Point2D)]) -> usize {
     target_row_locs.len()
 }
 
-/// Solves AOC 2022 Day 15 Part 2 // ###
+/// Solves AOC 2022 Day 15 Part 2 // Determines the tuning frequency of the distress beacon.
 fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
     for y in 0..=PART2_ROW_LIMIT {
         let mut ranges: Vec<RangeInclusive<i64>> = vec![];
@@ -117,15 +114,7 @@ fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
             ranges.push(min_x..=max_x);
         }
         // Sort the ranges based on their start value
-        ranges.sort_by(|a, b| {
-            if a.start() < b.start() {
-                Ordering::Less
-            } else if a.start() == b.start() {
-                Ordering::Equal
-            } else {
-                Ordering::Greater
-            }
-        });
+        ranges.sort_by(|a, b| a.start().cmp(b.start()));
         // Compare the ranges to find the gap where the distress beacon is located
         let mut left = 0;
         let mut right = 1;
@@ -133,6 +122,7 @@ fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
             if right >= ranges.len() {
                 break;
             }
+            // Check if the x location of the distress beacon has been found
             if ranges[right].start() - ranges[left].end() == 2 {
                 return (ranges[left].end() + 1) * 4000000 + y;
             }
