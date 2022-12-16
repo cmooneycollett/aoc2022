@@ -111,6 +111,10 @@ fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
             }
             let min_x = loc_sens.get_x() - mdist + delta_y;
             let max_x = loc_sens.get_x() + mdist - delta_y;
+            // Skip if the x value is outside the search area
+            if min_x > PART2_ROW_LIMIT || max_x < 0 {
+                continue;
+            }
             ranges.push(min_x..=max_x);
         }
         // Sort the ranges based on their start value
