@@ -5,8 +5,8 @@ use std::time::Instant;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Proboscidea Volcanium";
-const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/day16.txt";
+const PROBLEM_INPUT_FILE: &str = "./input/test/day16_t001.txt";
 const PROBLEM_DAY: u64 = 16;
 
 /// Processes the AOC 2022 Day 16 input file and solves both parts of the problem. Solutions are
@@ -105,12 +105,13 @@ fn get_visitable_flow_valves(
 fn determine_possible_paths(
     valve_connections: &HashMap<String, Vec<String>>,
     valve_activation_times: &HashMap<String, HashMap<String, u64>>,
+    minutes_allowed: u64,
 ) -> Vec<Vec<String>> {
     let mut possible_paths: Vec<Vec<String>> = vec![];
     determine_possible_paths_recursive(
         "AA",
         vec![],
-        30,
+        minutes_allowed,
         &mut possible_paths,
         valve_connections,
         valve_activation_times,
@@ -160,7 +161,6 @@ fn determine_possible_paths_recursive(
     possible_paths.push(current_path);
 }
 
-
 /// Gets the time required to move from a valve with flow (or the start valve "AA") to another valve
 /// with flow.
 fn get_valve_activation_times(
@@ -177,23 +177,37 @@ fn get_valve_activation_times(
         valid_valves.insert(valve.to_string());
     }
     for valve in valid_valves.iter() {
-        let valve_activation_times = get_visitable_flow_valves(&valve, valve_flow_rates, valve_connections, &valid_valves);
+        let valve_activation_times =
+            get_visitable_flow_valves(&valve, valve_flow_rates, valve_connections, &valid_valves);
         output.insert(valve.to_string(), valve_activation_times);
     }
     output
 }
 
-fn get_pressure_released_for_path(path: &Vec<String>, valve_flow_rates: &HashMap<String, u64>, valve_activation_times: &HashMap<String, HashMap<String, u64>>) -> u64 {
-    let mut minutes_remaining = 30;
+fn get_pressure_released_for_path(
+    path: &Vec<String>,
+    valve_flow_rates: &HashMap<String, u64>,
+    valve_activation_times: &HashMap<String, HashMap<String, u64>>,
+    minutes_allowed: u64,
+) -> u64 {
+    let mut minutes_remaining = minutes_allowed;
     let mut pressure_per_minute = 0;
     let mut total_pressure_released = 0;
     for i in 0..path.len() {
         // Get activation time
         let activation_time = {
             if i == 0 {
-                valve_activation_times.get("AA").unwrap().get(&path[i]).unwrap()
+                valve_activation_times
+                    .get("AA")
+                    .unwrap()
+                    .get(&path[i])
+                    .unwrap()
             } else {
-                valve_activation_times.get(&path[i - 1]).unwrap().get(&path[i]).unwrap()
+                valve_activation_times
+                    .get(&path[i - 1])
+                    .unwrap()
+                    .get(&path[i])
+                    .unwrap()
             }
         };
         // Sum up pressure released while travelling to and activating valve
@@ -213,22 +227,97 @@ fn get_pressure_released_for_path(path: &Vec<String>, valve_flow_rates: &HashMap
 fn solve_part1(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> u64 {
     let (valve_flow_rates, valve_connections) = input;
     let valve_activation_times = &get_valve_activation_times(valve_flow_rates, valve_connections);
-    let possible_paths = determine_possible_paths(valve_connections, valve_activation_times);
+    let possible_paths = determine_possible_paths(valve_connections, valve_activation_times, 30);
     let mut max_pressure_released = 0;
     for path in possible_paths.iter() {
-        let pressure_released = get_pressure_released_for_path(path, valve_flow_rates, valve_activation_times);
-        // println!("[+] Pressure released: {} // path: {:?}", pressure_released, path);
+        let pressure_released =
+            get_pressure_released_for_path(path, valve_flow_rates, valve_activation_times, 30);
         if pressure_released > max_pressure_released {
             max_pressure_released = pressure_released;
-            // println!(">>>> * NEW MAXIMUM * <<<<");
         }
     }
     max_pressure_released
 }
 
 /// Solves AOC 2022 Day 16 Part 2 // ###
-fn solve_part2(_input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> u64 {
-    0
+fn solve_part2(input: &(HashMap<String, u64>, HashMap<String, Vec<String>>)) -> u64 {
+    let (valve_flow_rates, valve_connections) = input;
+    let valve_activation_times = &get_valve_activation_times(valve_flow_rates, valve_connections);
+    // Find my paths
+    let possible_paths = determine_possible_paths(valve_connections, valve_activation_times, 26);
+    // Find the elephant paths
+    let possible_paths_simul = determine_possible_paths_simul(&possible_paths, valve_connections, valve_activation_times, 26);
+    // Find the maximum pressure released
+    let mut maximum_pressure_released = 0;
+    for (protag_path, ele_path) in possible_paths_simul.iter() {
+        let mut pressure_released = 0;
+        pressure_released += get_pressure_released_for_path(protag_path, valve_flow_rates, valve_activation_times, 26);
+        pressure_released += get_pressure_released_for_path(ele_path, valve_flow_rates, valve_activation_times, 26);
+        if pressure_released > maximum_pressure_released {
+            maximum_pressure_released = pressure_released;
+        }
+    }
+    maximum_pressure_released
+}
+
+fn determine_possible_paths_simul(
+    possible_paths: &Vec<Vec<String>>,
+    valve_connections: &HashMap<String, Vec<String>>,
+    valve_activation_times: &HashMap<String, HashMap<String, u64>>,
+    minutes_allowed: u64
+) -> Vec<(Vec<String>, Vec<String>)> {
+    let mut output: Vec<(Vec<String>, Vec<String>)> = vec![];
+    for path in possible_paths {
+        println!("Getting elephant paths for: {:?}", path);
+        let mut possible_paths_simul: Vec<(Vec<String>, Vec<String>)> = vec![];
+        determine_possible_paths_simul_recursive(path, "AA", vec![], minutes_allowed, &mut possible_paths_simul, valve_connections, valve_activation_times);
+        output.extend(possible_paths_simul);
+    }
+    output
+}
+
+fn determine_possible_paths_simul_recursive(
+    protagonist_path: &Vec<String>,
+    current_valve: &str,
+    current_path: Vec<String>,
+    time_remaining: u64,
+    possible_paths: &mut Vec<(Vec<String>, Vec<String>)>,
+    valve_connections: &HashMap<String, Vec<String>>,
+    valve_activation_times: &HashMap<String, HashMap<String, u64>>,
+) {
+    for next_valve in valve_activation_times.keys() {
+        if next_valve == "AA"
+            || current_path.contains(next_valve)
+            || protagonist_path.contains(next_valve)
+            || !valve_activation_times.contains_key(next_valve)
+            || *valve_activation_times
+                .get(current_valve)
+                .unwrap()
+                .get(next_valve)
+                .unwrap()
+                >= time_remaining
+        {
+            continue;
+        }
+        let mut new_path = current_path.to_vec();
+        new_path.push(next_valve.to_string());
+        let new_time_remaining = time_remaining
+            - valve_activation_times
+                .get(current_valve)
+                .unwrap()
+                .get(next_valve)
+                .unwrap();
+        determine_possible_paths_simul_recursive(
+            protagonist_path,
+            next_valve,
+            new_path,
+            new_time_remaining,
+            possible_paths,
+            valve_connections,
+            valve_activation_times,
+        );
+    }
+    possible_paths.push((protagonist_path.to_vec(), current_path));
 }
 
 #[cfg(test)]
