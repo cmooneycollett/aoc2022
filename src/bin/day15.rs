@@ -1,5 +1,7 @@
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::fs;
+use std::ops::RangeInclusive;
 use std::time::Instant;
 
 use regex::Regex;
@@ -8,7 +10,10 @@ use aoc2022::utils::cartography::Point2D;
 
 const PROBLEM_NAME: &str = "Beacon Exclusion Zone";
 const PROBLEM_INPUT_FILE: &str = "./input/day15.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/test/day15_t001.txt";
 const PROBLEM_DAY: u64 = 15;
+
+const PART2_ROW_LIMIT: i64 = 4000000;
 
 /// Processes the AOC 2022 Day 15 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -97,8 +102,49 @@ fn solve_part1(input: &[(Point2D, Point2D)]) -> usize {
 }
 
 /// Solves AOC 2022 Day 15 Part 2 // ###
-fn solve_part2(_input: &[(Point2D, Point2D)]) -> usize {
-    0
+fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
+    for y in 0..=PART2_ROW_LIMIT {
+        let mut ranges: Vec<RangeInclusive<i64>> = vec![];
+        // Find the exclusion zones in the current row from the sensors
+        for (loc_sens, loc_beac) in input {
+            let mdist = loc_sens.calculate_manhattan_distance(loc_beac) as i64;
+            let delta_y = (loc_sens.get_y() - y).abs();
+            if delta_y > mdist {
+                continue;
+            }
+            let min_x = loc_sens.get_x() - mdist + delta_y;
+            let max_x = loc_sens.get_x() + mdist - delta_y;
+            ranges.push(min_x..=max_x);
+        }
+        // Sort the ranges based on their start value
+        ranges.sort_by(|a, b| {
+            if a.start() < b.start() {
+                Ordering::Less
+            } else if a.start() == b.start() {
+                Ordering::Equal
+            } else {
+                Ordering::Greater
+            }
+        });
+        // Compare the ranges to find the gap where the distress beacon is located
+        let mut left = 0;
+        let mut right = 1;
+        loop {
+            if right >= ranges.len() {
+                break;
+            }
+            if ranges[right].start() - ranges[left].end() == 2 {
+                return (ranges[left].end() + 1) * 4000000 + y;
+            }
+            if ranges[right].end() > ranges[left].end() {
+                left = right;
+                right = left + 1;
+            } else {
+                right += 1;
+            }
+        }
+    }
+    panic!("Day 15 Part 2 - should not get here!");
 }
 
 /// Finds the locations in the specified row that could not contain a beacon.
@@ -116,15 +162,6 @@ fn find_beacon_exclusion_locations_in_row(
     output
 }
 
-// /// Gets the four locations to the left, right, top and bottom of the given location.
-// fn get_next_valid_points(loc: &Point2D) -> Vec<Point2D> {
-//     let mut output: Vec<Point2D> = vec![];
-//     for (dx, dy) in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
-//         output.push(loc.check_move_point(dx, dy));
-//     }
-//     output
-// }
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -141,8 +178,7 @@ mod test {
     #[test]
     fn test_day15_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(11840879211051, solution);
     }
 }
