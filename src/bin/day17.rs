@@ -6,7 +6,11 @@ use aoc2022::utils::cartography::Point2D;
 
 const PROBLEM_NAME: &str = "Pyroclastic Flow";
 const PROBLEM_INPUT_FILE: &str = "./input/day17.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/test/day17_t001.txt";
 const PROBLEM_DAY: u64 = 17;
+
+const PART1_ROCKS: i64 = 2022;
+const PART2_ROCKS: i64 = 100_000_000_000_000;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum RockType {
@@ -59,7 +63,8 @@ fn process_input_file(filename: &str) -> Vec<char> {
     return raw_input.trim().chars().collect::<Vec<char>>();
 }
 
-/// Solves AOC 2022 Day 17 Part 1 // ###
+/// Solves AOC 2022 Day 17 Part 1 // Simulates sequence of 2022 rocks falling and returns the
+/// maximum height of the rock at the end.
 fn solve_part1(input: &[char]) -> i64 {
     // Generate rock type cycle
     let rock_types: Vec<RockType> = vec![
@@ -78,7 +83,7 @@ fn solve_part1(input: &[char]) -> i64 {
     for x in 0..7 {
         rock_locations.insert(Point2D::new(x, -1));
     }
-    for _ in 0..2022 {
+    for _ in 0..PART1_ROCKS {
         // Generate new rock
         let rock_type = *rock_type_cycle.next().unwrap();
         let mut rock = generate_new_rock(rock_type, rock_max_height + 4);
@@ -146,9 +151,128 @@ fn solve_part1(input: &[char]) -> i64 {
     rock_max_height + 1
 }
 
-/// Solves AOC 2022 Day 17 Part 2 // ###
-fn solve_part2(_input: &[char]) -> i64 {
-    0
+/// Solves AOC 2022 Day 17 Part 2 // Simulates sequence of 100 trillion rocks falling and returns
+/// the maximum height of the resulting rock formation.
+fn solve_part2(input: &[char]) -> i64 {
+    // Generate rock type cycle
+    let rock_types: Vec<RockType> = vec![
+        RockType::RockHorizBar,
+        RockType::RockCross,
+        RockType::RockL,
+        RockType::RockVertBar,
+        RockType::RockSquare,
+    ];
+    let mut rock_type_cycle = rock_types.iter().cycle();
+    // Generate jet pattern cycle
+    let mut jet_patt_cycle = input.iter().cycle();
+    // Initialise set to record rock location
+    let mut rock_max_height: i64 = -1;
+    let mut rock_locations: HashSet<Point2D> = HashSet::new();
+    for x in 0..7 {
+        rock_locations.insert(Point2D::new(x, -1));
+    }
+    let mut rock_heights: Vec<i64> = vec![];
+    let mut rock_heights_all: Vec<i64> = vec![];
+    let mut rocks_dropped_track: Vec<i64> = vec![];
+    let mut rocks_dropped_track_all: Vec<i64> = vec![];
+    for rocks_dropped in 0..PART2_ROCKS {
+        // check for line
+        let mut no_line = false;
+        for x in 0..7 {
+            if !rock_locations.contains(&Point2D::new(x, rock_max_height)) {
+                no_line = true;
+                break;
+            }
+        }
+        rock_heights_all.push(rock_max_height);
+        rocks_dropped_track_all.push(rocks_dropped);
+        if !no_line {
+            println!("LINE");
+            rock_heights.push(rock_max_height);
+            rocks_dropped_track.push(rocks_dropped);
+            if rock_heights.len() >= 10 {
+                let diff_height = rock_heights.last().unwrap() - rock_heights[rock_heights.len() - 2];
+                let diff_dropped = rocks_dropped_track.last().unwrap() - rocks_dropped_track[rocks_dropped_track.len() - 2];
+                println!(
+                    "[+] rocks dropped: {} [{}] // rock height: {} [{}]",
+                    rocks_dropped, diff_dropped, rock_max_height, diff_height
+                );
+                let period = rocks_dropped_track.last().unwrap() - rocks_dropped_track[rocks_dropped_track.len() - 3];
+                let delta_height = rock_heights.last().unwrap() - rock_heights[rock_heights.len() - 3];
+                let periods_remaining = (PART2_ROCKS - rocks_dropped_track.last().unwrap()) / period - 1;
+                let steps_remainder = (PART2_ROCKS - rocks_dropped_track.last().unwrap()) % period;
+
+                let height_from_steps_remainder = rock_heights_all[rock_heights_all.len() - 1 - period as usize + steps_remainder as usize] - rock_heights_all[rock_heights_all.len() - period as usize];
+
+                let height = rock_max_height + delta_height * periods_remaining + height_from_steps_remainder;
+                return height;
+            }
+        }
+        // Generate new rock
+        let rock_type = *rock_type_cycle.next().unwrap();
+        let mut rock = generate_new_rock(rock_type, rock_max_height + 4);
+        loop {
+            // Push rock
+            let dirn = jet_patt_cycle.next().unwrap();
+            match dirn {
+                '<' => {
+                    let mut has_collision = false;
+                    let mut new_rock: HashSet<Point2D> = HashSet::new();
+                    for tile in rock.iter() {
+                        if tile.get_x() == 0
+                            || rock_locations.contains(&tile.check_move_point(-1, 0))
+                        {
+                            has_collision = true;
+                            break;
+                        }
+                        new_rock.insert(tile.check_move_point(-1, 0));
+                    }
+                    if !has_collision {
+                        rock = new_rock;
+                    }
+                }
+                '>' => {
+                    let mut has_collision = false;
+                    let mut new_rock: HashSet<Point2D> = HashSet::new();
+                    for tile in rock.iter() {
+                        if tile.get_x() == 6
+                            || rock_locations.contains(&tile.check_move_point(1, 0))
+                        {
+                            has_collision = true;
+                            break;
+                        }
+                        new_rock.insert(tile.check_move_point(1, 0));
+                    }
+                    if !has_collision {
+                        rock = new_rock;
+                    }
+                }
+                _ => panic!("Bad jet pattern character!"),
+            }
+            // Check for down movement
+            let mut has_collision = false;
+            let mut new_rock: HashSet<Point2D> = HashSet::new();
+            for tile in rock.iter() {
+                if rock_locations.contains(&tile.check_move_point(0, -1)) {
+                    has_collision = true;
+                    break;
+                }
+                new_rock.insert(tile.check_move_point(0, -1));
+            }
+            // Check if the rock cannot move down
+            if !has_collision {
+                rock = new_rock;
+            } else {
+                let new_rock_max_height = rock.iter().map(|point| point.get_y()).max().unwrap();
+                if new_rock_max_height > rock_max_height {
+                    rock_max_height = new_rock_max_height;
+                }
+                rock_locations.extend(rock);
+                break;
+            }
+        }
+    }
+    rock_max_height + 1
 }
 
 /// Generates a new set of points representing the given rock type and at the specified height for
