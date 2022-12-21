@@ -9,3 +9,5 @@ authors = ["Connor Mooney-Collett <connor.mooneycollett@gmail.com>"]
 [dependencies]
 lazy_static = "1.4.0"
 regex = "1.7.0"
+strum = "0.24"
+strum_macros = "0.24"
