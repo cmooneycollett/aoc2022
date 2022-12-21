@@ -10,7 +10,8 @@ const PROBLEM_INPUT_FILE: &str = "./input/day17.txt";
 const PROBLEM_DAY: u64 = 17;
 
 const PART1_ROCKS: i64 = 2022;
-const PART2_ROCKS: i64 = 100_000_000_000_000;
+const PART2_ROCKS: i64 = 1_000_000_000_000;
+const PART2_SAMPLE_SIZE: i64 = 10000;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 enum RockType {
@@ -19,6 +20,22 @@ enum RockType {
     RockL,
     RockVertBar,
     RockSquare,
+}
+
+/// Represents a state of the cave after a rock has fallen.
+#[derive(Copy, Clone, PartialEq, Eq)]
+struct CaveState {
+    max_height: i64,
+    jet_index: i64
+}
+
+impl CaveState {
+    pub fn new(max_height: i64, jet_index: i64) -> Self {
+        Self {
+            max_height,
+            jet_index,
+        }
+    }
 }
 
 /// Processes the AOC 2022 Day 17 input file and solves both parts of the problem. Solutions are
@@ -171,49 +188,17 @@ fn solve_part2(input: &[char]) -> i64 {
     for x in 0..7 {
         rock_locations.insert(Point2D::new(x, -1));
     }
-    let mut rock_heights: Vec<i64> = vec![];
-    let mut rock_heights_all: Vec<i64> = vec![];
-    let mut rocks_dropped_track: Vec<i64> = vec![];
-    let mut rocks_dropped_track_all: Vec<i64> = vec![];
-    for rocks_dropped in 0..PART2_ROCKS {
-        // check for line
-        let mut no_line = false;
-        for x in 0..7 {
-            if !rock_locations.contains(&Point2D::new(x, rock_max_height)) {
-                no_line = true;
-                break;
-            }
-        }
-        rock_heights_all.push(rock_max_height);
-        rocks_dropped_track_all.push(rocks_dropped);
-        if !no_line {
-            println!("LINE");
-            rock_heights.push(rock_max_height);
-            rocks_dropped_track.push(rocks_dropped);
-            if rock_heights.len() >= 10 {
-                let diff_height = rock_heights.last().unwrap() - rock_heights[rock_heights.len() - 2];
-                let diff_dropped = rocks_dropped_track.last().unwrap() - rocks_dropped_track[rocks_dropped_track.len() - 2];
-                println!(
-                    "[+] rocks dropped: {} [{}] // rock height: {} [{}]",
-                    rocks_dropped, diff_dropped, rock_max_height, diff_height
-                );
-                let period = rocks_dropped_track.last().unwrap() - rocks_dropped_track[rocks_dropped_track.len() - 3];
-                let delta_height = rock_heights.last().unwrap() - rock_heights[rock_heights.len() - 3];
-                let periods_remaining = (PART2_ROCKS - rocks_dropped_track.last().unwrap()) / period - 1;
-                let steps_remainder = (PART2_ROCKS - rocks_dropped_track.last().unwrap()) % period;
-
-                let height_from_steps_remainder = rock_heights_all[rock_heights_all.len() - 1 - period as usize + steps_remainder as usize] - rock_heights_all[rock_heights_all.len() - period as usize];
-
-                let height = rock_max_height + delta_height * periods_remaining + height_from_steps_remainder;
-                return height;
-            }
-        }
+    // Records current max rock height and jet pattern index
+    let mut rock_states: Vec<CaveState> = vec![];
+    let mut jets_used = 0;
+    for _ in 0..PART2_SAMPLE_SIZE {
         // Generate new rock
         let rock_type = *rock_type_cycle.next().unwrap();
         let mut rock = generate_new_rock(rock_type, rock_max_height + 4);
         loop {
             // Push rock
             let dirn = jet_patt_cycle.next().unwrap();
+            jets_used += 1;
             match dirn {
                 '<' => {
                     let mut has_collision = false;
@@ -271,8 +256,31 @@ fn solve_part2(input: &[char]) -> i64 {
                 break;
             }
         }
+        // Record the current maximum height of the rock formation 
+        rock_states.push(CaveState::new(rock_max_height, jets_used % input.len() as i64));
     }
-    rock_max_height + 1
+    // Now try to find the offset, and period of the repeating height changes
+    for period_len in 1..=PART2_SAMPLE_SIZE {
+        for offset in 0..PART2_SAMPLE_SIZE {
+            if offset + period_len * 2 >= PART2_SAMPLE_SIZE {
+                break;
+            }
+            let state0 = rock_states[offset as usize];
+            let state1 = rock_states[(offset + period_len) as usize];
+            let state2 = rock_states[(offset + period_len * 2) as usize];
+            let delta0 = state1.max_height - state0.max_height;
+            let delta1 = state2.max_height - state1.max_height;
+            if delta0 == delta1 && state0.jet_index == state1.jet_index && state1.jet_index == state2.jet_index {
+                let remaining_steps = PART2_ROCKS - offset;
+                let full_periods_remaining = remaining_steps / period_len;
+                let extra_steps = remaining_steps % period_len;
+                let steps_from_full_periods = full_periods_remaining * delta1;
+                let steps_from_extra = rock_states[(offset + extra_steps) as usize].max_height - rock_states[offset as usize].max_height;
+                return state0.max_height + steps_from_extra + steps_from_full_periods;
+            }
+        }
+    }
+    panic!("Day 17 Part 2 - did not find repeating period in sample size {}", PART2_SAMPLE_SIZE);
 }
 
 /// Generates a new set of points representing the given rock type and at the specified height for
@@ -337,8 +345,23 @@ mod test {
     #[test]
     fn test_day17_p2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(1523615160362, solution);
+    }
+
+    /// Tests the Day 17 Part 1 solver method against the example input 001.
+    #[test]
+    fn test_day17_p1_t001() {
+        let input = process_input_file("./input/test/day17_t001.txt");
+        let solution = solve_part1(&input);
+        assert_eq!(3068, solution);
+    }
+
+    /// Tests the Day 17 Part 2 solver method against the example input 001.
+    #[test]
+    fn test_day17_p2_t001() {
+        let input = process_input_file("./input/test/day17_t001.txt");
+        let solution = solve_part2(&input);
+        assert_eq!(1514285714288, solution);
     }
 }
