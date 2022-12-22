@@ -43,11 +43,11 @@ pub fn main() {
 
 /// Processes the AOC 2022 Day 18 input file in the format required by the solver functions.
 /// Returned value is vector of Point3D structs using the co-ordinates listed in the input file.
-fn process_input_file(filename: &str) -> Vec<Point3D> {
+fn process_input_file(filename: &str) -> HashSet<Point3D> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    let mut output: Vec<Point3D> = vec![];
+    let mut output: HashSet<Point3D> = HashSet::new();
     for line in raw_input.lines() {
         let line = line.trim();
         if line.is_empty() {
@@ -57,55 +57,53 @@ fn process_input_file(filename: &str) -> Vec<Point3D> {
             .split(",")
             .map(|elem| elem.parse::<i64>().unwrap())
             .collect::<Vec<i64>>();
-        output.push(Point3D::new(coords[0], coords[1], coords[2]));
+        output.insert(Point3D::new(coords[0], coords[1], coords[2]));
     }
     output
 }
 
 /// Solves AOC 2022 Day 18 Part 1 // Determines the surface area of the scanned lava droplet.
-fn solve_part1(cubes: &[Point3D]) -> u64 {
-    let mut observed_cubes: HashSet<Point3D> = HashSet::new();
-    let mut total_surface_area = 0;
-    for cube in cubes {
-        let mut exposed_sides = 6;
-        // dx
-        if observed_cubes.contains(&cube.check_move_point(-1, 0, 0)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        if observed_cubes.contains(&cube.check_move_point(1, 0, 0)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        // dy
-        if observed_cubes.contains(&cube.check_move_point(0, -1, 0)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        if observed_cubes.contains(&cube.check_move_point(0, 1, 0)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        // dz
-        if observed_cubes.contains(&cube.check_move_point(0, 0, -1)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        if observed_cubes.contains(&cube.check_move_point(0, 0, 1)) {
-            exposed_sides -= 1;
-            total_surface_area -= 1;
-        }
-        // Add exposed sides
-        total_surface_area += exposed_sides;
-        observed_cubes.insert(*cube);
-    }
-    total_surface_area
+fn solve_part1(observed_cubes: &HashSet<Point3D>) -> u64 {
+    calculate_total_surface_area(observed_cubes)
 }
 
 /// Solves AOC 2022 Day 18 Part 2 // Determines the external surface area of the scanned lava
 /// droplet.
-fn solve_part2(_cubes: &[Point3D]) -> u64 {
-   0
+fn solve_part2(_cubes: &HashSet<Point3D>) -> u64 {
+    0
+}
+
+/// Calculates the total number of faces amongst the observed cubes that are not connected to
+/// another cube.
+fn calculate_total_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
+    let mut total_surface_area = 0;
+    for cube in observed_cubes {
+        // -dx
+        if !observed_cubes.contains(&cube.check_move_point(-1, 0, 0)) {
+            total_surface_area += 1;
+        }
+        // +dx
+        if !observed_cubes.contains(&cube.check_move_point(1, 0, 0)) {
+            total_surface_area += 1;
+        }
+        // -dy
+        if !observed_cubes.contains(&cube.check_move_point(0, -1, 0)) {
+            total_surface_area += 1;
+        }
+        // +dy
+        if !observed_cubes.contains(&cube.check_move_point(0, 1, 0)) {
+            total_surface_area += 1;
+        }
+        // -dz
+        if !observed_cubes.contains(&cube.check_move_point(0, 0, -1)) {
+            total_surface_area += 1;
+        }
+        // +dz
+        if !observed_cubes.contains(&cube.check_move_point(0, 0, 1)) {
+            total_surface_area += 1;
+        }
+    }
+    total_surface_area
 }
 
 #[cfg(test)]
