@@ -197,7 +197,7 @@ mod test {
 
     /// Tests the Day 8 Part 1 solver method against the actual problem solution.
     #[test]
-    fn test_day08_p1_actual() {
+    fn test_day08_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part1(&input);
         assert_eq!(1538, solution);
@@ -205,7 +205,7 @@ mod test {
 
     /// Tests the Day 8 Part 2 solver method against the actual problem solution.
     #[test]
-    fn test_day08_p2_actual() {
+    fn test_day08_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part2(&input);
         assert_eq!(496125, solution);

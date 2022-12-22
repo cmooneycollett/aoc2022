@@ -293,7 +293,7 @@ mod test {
 
     /// Tests the Day 17 Part 1 solver method against the actual problem solution.
     #[test]
-    fn test_day17_p1_actual() {
+    fn test_day17_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part1(&input);
         assert_eq!(3071, solution);
@@ -301,7 +301,7 @@ mod test {
 
     /// Tests the Day 17 Part 2 solver method against the actual problem solution.
     #[test]
-    fn test_day17_p2_actual() {
+    fn test_day17_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part2(&input);
         assert_eq!(1523615160362, solution);
@@ -309,7 +309,7 @@ mod test {
 
     /// Tests the Day 17 Part 1 solver method against the example input 001.
     #[test]
-    fn test_day17_p1_t001() {
+    fn test_day17_part1_t001() {
         let input = process_input_file("./input/test/day17_t001.txt");
         let solution = solve_part1(&input);
         assert_eq!(3068, solution);
@@ -317,7 +317,7 @@ mod test {
 
     /// Tests the Day 17 Part 2 solver method against the example input 001.
     #[test]
-    fn test_day17_p2_t001() {
+    fn test_day17_part2_t001() {
         let input = process_input_file("./input/test/day17_t001.txt");
         let solution = solve_part2(&input);
         assert_eq!(1514285714288, solution);

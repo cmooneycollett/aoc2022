@@ -42,7 +42,7 @@ pub fn main() {
 /// Returned value is ###.
 fn process_input_file(filename: &str) -> String {
     // Read contents of problem input file
-    let raw_input = fs::read_to_string(filename).unwrap();
+    let _raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
     unimplemented!();
 }
@@ -63,7 +63,7 @@ mod test {
 
     /// Tests the Day 00 Part 1 solver method against the actual problem solution.
     #[test]
-    fn test_day00_p1_actual() {
+    fn test_day00_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let _solution = solve_part1(&input);
         unimplemented!();
@@ -72,7 +72,7 @@ mod test {
 
     /// Tests the Day 00 Part 2 solver method against the actual problem solution.
     #[test]
-    fn test_day00_p2_actual() {
+    fn test_day00_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let _solution = solve_part2(&input);
         unimplemented!();

@@ -209,7 +209,7 @@ mod test {
 
     /// Tests the Day 18 Part 1 solver method against the actual problem solution.
     #[test]
-    fn test_day18_p1_actual() {
+    fn test_day18_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part1(&input);
         assert_eq!(4332, solution);
@@ -217,7 +217,7 @@ mod test {
 
     /// Tests the Day 18 Part 2 solver method against the actual problem solution.
     #[test]
-    fn test_day18_p2_actual() {
+    fn test_day18_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
         let solution = solve_part2(&input);
         assert_eq!(2524, solution);
@@ -225,7 +225,7 @@ mod test {
 
     /// Tests the Day 18 Part 1 solver method against example input 001.
     #[test]
-    fn test_day18_p1_t001() {
+    fn test_day18_part1_t001() {
         let input = process_input_file("./input/test/day18_t001.txt");
         let solution = solve_part1(&input);
         assert_eq!(64, solution);
@@ -233,7 +233,7 @@ mod test {
 
     /// Tests the Day 18 Part 1 solver method against example input 001.
     #[test]
-    fn test_day18_p2_t001() {
+    fn test_day18_part2_t001() {
         let input = process_input_file("./input/test/day18_t001.txt");
         let solution = solve_part2(&input);
         assert_eq!(58, solution);
