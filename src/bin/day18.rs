@@ -64,7 +64,7 @@ fn process_input_file(filename: &str) -> HashSet<Point3D> {
             continue;
         }
         let coords = line
-            .split(",")
+            .split(',')
             .map(|elem| elem.parse::<i64>().unwrap())
             .collect::<Vec<i64>>();
         output.insert(Point3D::new(coords[0], coords[1], coords[2]));
@@ -120,12 +120,12 @@ fn calculate_external_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
 /// Checks if the given adjacent cube is out of bounds. Returns true if the adjacent cube is outside
 /// of the bounding volume. Otherwise, returns false;
 fn check_if_adjacent_cube_is_out_of_bounds(adj_cube: &Point3D, minmax: &MinMax3D) -> bool {
-    return adj_cube.get_x() < minmax.min_x
+    adj_cube.get_x() < minmax.min_x
         || adj_cube.get_x() > minmax.max_x
         || adj_cube.get_y() < minmax.min_y
         || adj_cube.get_y() > minmax.max_y
         || adj_cube.get_z() < minmax.min_z
-        || adj_cube.get_z() > minmax.max_z;
+        || adj_cube.get_z() > minmax.max_z
 }
 
 /// Calculates the total number of faces amongst the observed cubes that are not connected to
@@ -144,20 +144,14 @@ fn calculate_total_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
 
 /// Gets the cubes adjacent to the given cube (not including diagonals).
 fn get_adjacent_cubes(cube: &Point3D) -> Vec<Point3D> {
-    let mut output: Vec<Point3D> = vec![];
-    // -dx
-    output.push(cube.check_move_point(-1, 0, 0));
-    // +dx
-    output.push(cube.check_move_point(1, 0, 0));
-    // -dy
-    output.push(cube.check_move_point(0, -1, 0));
-    // +dy
-    output.push(cube.check_move_point(0, 1, 0));
-    // -dz
-    output.push(cube.check_move_point(0, 0, -1));
-    // +dz
-    output.push(cube.check_move_point(0, 0, 1));
-    // Result
+    let output: Vec<Point3D> = vec![
+        cube.check_move_point(-1, 0, 0), // -dx
+        cube.check_move_point(1, 0, 0),  // +dx
+        cube.check_move_point(0, -1, 0), // -dy
+        cube.check_move_point(0, 1, 0),  // +dy
+        cube.check_move_point(0, 0, -1), // -dz
+        cube.check_move_point(0, 0, 1),  // +dz
+    ];
     output
 }
 
