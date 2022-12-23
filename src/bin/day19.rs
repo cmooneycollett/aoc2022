@@ -2,22 +2,9 @@ use std::collections::HashSet;
 use std::fs;
 use std::time::Instant;
 
-// use itertools::Itertools;
-// use lazy_static::lazy_static;
 use regex::Regex;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
-
-// lazy_static! {
-//     static ref ROBOT_COMBOS: Vec<Vec<RobotType>> = {
-//         let mut robot_combos: Vec<Vec<RobotType>> = vec![];
-//         robot_combos.extend(RobotType::iter().combinations(1));
-//         // robot_combos.extend(RobotType::iter().combinations(2));
-//         // robot_combos.extend(RobotType::iter().combinations(3));
-//         // robot_combos.extend(RobotType::iter().combinations(4));
-//         robot_combos
-//     };
-// }
 
 const PROBLEM_NAME: &str = "Not Enough Minerals";
 const PROBLEM_INPUT_FILE: &str = "./input/day19.txt";
@@ -25,6 +12,7 @@ const PROBLEM_INPUT_FILE: &str = "./input/day19.txt";
 const PROBLEM_DAY: u64 = 19;
 
 const PART1_MINUTES_ALLOWED: u64 = 24;
+const PART2_MINUTES_ALLOWED: u64 = 32;
 
 /// Represents the different kinds of robot.
 #[derive(Copy, Clone, PartialEq, Eq, EnumIter)]
@@ -34,14 +22,6 @@ enum RobotType {
     ObsidianRobot,
     GeodeRobot,
 }
-
-// /// Represents the different kind of resource.
-// enum ResourceType {
-//     Ore,
-//     Clay,
-//     Obsidian,
-//     Geode,
-// }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct ResourceBag {
@@ -141,6 +121,7 @@ pub fn main() {
 /// Processes the AOC 2022 Day 19 input file in the format required by the solver functions.
 /// Returned value is vector of blueprints specified in the input file.
 fn process_input_file(filename: &str) -> Vec<Blueprint> {
+    println!("[?] Processing input file: {}", filename);
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
@@ -190,19 +171,26 @@ fn process_input_file(filename: &str) -> Vec<Blueprint> {
     blueprints
 }
 
-/// Solves AOC 2022 Day 19 Part 1 // Calculates the sum of the quality levels of the blueprints.
+/// Solves AOC 2022 Day 19 Part 1 // Calculates the sum of the quality levels of the blueprints
+/// with 24 minutes allowed for each to run.
 fn solve_part1(blueprints: &[Blueprint]) -> u64 {
     let mut total = 0;
     for bp in blueprints {
         println!("[+] Simulating blueprint {}...", bp.id);
-        total += simulate_blueprint(bp, PART1_MINUTES_ALLOWED);
+        total += simulate_blueprint(bp, PART1_MINUTES_ALLOWED) * bp.id;
     }
     total
 }
 
-/// Solves AOC 2022 Day 19 Part 2 // ###
-fn solve_part2(_input: &[Blueprint]) -> u64 {
-    0
+/// Solves AOC 2022 Day 19 Part 2 // Calculates the product of the maximum geode numbers from the
+/// first three blueprints with 32 minutes allowed for each to run.
+fn solve_part2(blueprints: &[Blueprint]) -> u64 {
+    let mut values: Vec<u64> = vec![];
+    for bp in blueprints.iter().take(3) {
+        println!("[+] Simulating blueprint {}...", bp.id);
+        values.push(simulate_blueprint(bp, PART2_MINUTES_ALLOWED));
+    }
+    values.iter().product()
 }
 
 fn simulate_blueprint(blueprint: &Blueprint, time_allowed: u64) -> u64 {
@@ -219,7 +207,7 @@ fn simulate_blueprint(blueprint: &Blueprint, time_allowed: u64) -> u64 {
         time_allowed,
         &mut earliest_geode_robot_time,
     );
-    geode_totals.iter().max().unwrap() * blueprint.id
+    *geode_totals.iter().max().unwrap()
 }
 
 fn simulate_blueprint_recursive(
@@ -230,26 +218,23 @@ fn simulate_blueprint_recursive(
     time_remaining: u64,
     earliest_geode_robot_time: &mut u64,
 ) {
-    if time_remaining <= 0 {
+    if time_remaining == 0 {
         if geode_totals.insert(resource_total.geode) {
             println!(
-                "[{}] new geode total: {}",
+                ">>>> [{}] new geode total: {}",
                 blueprint.id, resource_total.geode
             );
         }
         return;
     }
     // prune
-    // if time_remaining - 1 < *earliest_geode_robot_time && robot_total.geode == 0 {
-    //     return;
-    // }
+    if robot_total.obsidian > blueprint.geode_robot.obsidian {
+        return;
+    }
     // prune
-    // if robot_total.ore > PART1_MINUTES_ALLOWED / 2
-    //     || robot_total.obsidian > blueprint.geode_robot.obsidian
-    //     || robot_total.clay > blueprint.obsidian_robot.clay
-    // {
-    //     return;
-    // }
+    if time_remaining < *earliest_geode_robot_time && robot_total.geode == 0 {
+        return;
+    }
     // Try to build robots
     let mut build_options: Vec<Option<RobotType>> = vec![None];
     for robot_type in RobotType::iter() { 
@@ -260,7 +245,13 @@ fn simulate_blueprint_recursive(
             RobotType::GeodeRobot => blueprint.geode_robot,
         };
         if resource_total.fits_within(&resources_needed) {
-            build_options.push(Some(robot_type));
+            // build_options.push(Some(robot_type));
+            if robot_type == RobotType::GeodeRobot {
+                build_options = vec![Some(RobotType::GeodeRobot)];
+                break;
+            } else {
+                build_options.push(Some(robot_type));
+            }
         }
     }
     for robot_option in build_options {
@@ -291,18 +282,18 @@ fn simulate_blueprint_recursive(
             None => (),
         }
         // prune
-        // if time_remaining <= 2 && robot_total.geode == 0 && robot_construction.geode == 0 {
-        //     return;
-        // }
-        // if time_remaining <= 2 && robot_construction.obsidian > 0 {
-        //     return;
-        // }
-        // if time_remaining <= 2 && robot_construction.clay > 0 {
-        //     return;
-        // }
-        // if time_remaining <= 2 && robot_construction.ore > 0 {
-        //     return;
-        // }
+        if time_remaining <= 2 && robot_total.geode == 0 && robot_construction.geode == 0 {
+            continue;
+        }
+        if time_remaining <= 2 && robot_construction.obsidian > 0 {
+            continue;
+        }
+        if time_remaining <= 2 && robot_construction.clay > 0 {
+            continue;
+        }
+        if time_remaining <= 2 && robot_construction.ore > 0 {
+            continue;
+        }
         // Collect resources
         let mut resource_total = resource_total;
         resource_total.ore += robot_total.ore;
