@@ -8,12 +8,14 @@ const PROBLEM_NAME: &str = "Monkey Math";
 const PROBLEM_INPUT_FILE: &str = "./input/day21.txt";
 const PROBLEM_DAY: u64 = 21;
 
+#[derive(Clone, PartialEq, Eq)]
 enum Operation {
     Nop { value: i64 },
     Add { left: String, right: String },
     Subtract { left: String, right: String },
     Multiply { left: String, right: String },
     Divide { left: String, right: String },
+    Equal { left: String, right: String },
 }
 
 /// Processes the AOC 2022 Day 21 input file and solves both parts of the problem. Solutions are
@@ -100,31 +102,64 @@ fn process_input_file(filename: &str) -> HashMap<String, Operation> {
 /// Solves AOC 2022 Day 21 Part 1 // Determines the number that the monkey named "root" will yell
 /// out.
 fn solve_part1(monkey_ops: &HashMap<String, Operation>) -> i64 {
-    determine_monkey_yell_value("root", monkey_ops)
+    determine_monkey_yell_value("root", monkey_ops).unwrap()
 }
 
 /// Solves AOC 2022 Day 21 Part 2 // ###
-fn solve_part2(_input: &HashMap<String, Operation>) -> i64 {
-    0
+fn solve_part2(monkey_ops: &HashMap<String, Operation>) -> i64 {
+    let mut humn_i = 0;
+    let mut monkey_ops_mod = monkey_ops.clone();
+    let old_root_op = monkey_ops.get("root").unwrap();
+    let new_root_op = match old_root_op {
+        Operation::Add { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
+        Operation::Subtract { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
+        Operation::Multiply { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
+        Operation::Divide { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
+        _ => panic!("Bad \"root\" old op!"),
+    };
+    monkey_ops_mod.insert(String::from("root"), new_root_op);
+    loop {
+        if humn_i % 10000 == 0 {
+            println!("trying to yell {}...", humn_i);
+        }
+        // let mut new_monkey_ops = monkey_ops_mod.clone();
+        monkey_ops_mod.insert(String::from("humn"), Operation::Nop { value: humn_i });
+        if let Some(_) = determine_monkey_yell_value("root", &monkey_ops_mod) {
+            return humn_i;
+        }
+        humn_i += 1;
+        // let new_root_ops = Operation::Equal { left: old_root_op., right: old_root_op.right };
+    }
 }
 
 /// Determines the value that will be yelled by the named monkey.
-fn determine_monkey_yell_value(name: &str, monkey_ops: &HashMap<String, Operation>) -> i64 {
+fn determine_monkey_yell_value(name: &str, monkey_ops: &HashMap<String, Operation>) -> Option<i64> {
     match monkey_ops.get(name).unwrap() {
-        Operation::Nop { value } => {
-            *value
-        }
-        Operation::Add { left, right } => {
-            determine_monkey_yell_value(left, monkey_ops) + determine_monkey_yell_value(right, monkey_ops)
-        }
-        Operation::Subtract { left, right } => {
-            determine_monkey_yell_value(left, monkey_ops) - determine_monkey_yell_value(right, monkey_ops)
-        }
-        Operation::Multiply { left, right } => {
-            determine_monkey_yell_value(left, monkey_ops) * determine_monkey_yell_value(right, monkey_ops)
-        }
-        Operation::Divide { left, right } => {
-            determine_monkey_yell_value(left, monkey_ops) / determine_monkey_yell_value(right, monkey_ops)
+        Operation::Nop { value } => Some(*value),
+        Operation::Add { left, right } => Some(
+            determine_monkey_yell_value(left, monkey_ops).unwrap()
+                + determine_monkey_yell_value(right, monkey_ops).unwrap(),
+        ),
+        Operation::Subtract { left, right } => Some(
+            determine_monkey_yell_value(left, monkey_ops).unwrap()
+                - determine_monkey_yell_value(right, monkey_ops).unwrap(),
+        ),
+        Operation::Multiply { left, right } => Some(
+            determine_monkey_yell_value(left, monkey_ops).unwrap()
+                * determine_monkey_yell_value(right, monkey_ops).unwrap(),
+        ),
+        Operation::Divide { left, right } => Some(
+            determine_monkey_yell_value(left, monkey_ops).unwrap()
+                / determine_monkey_yell_value(right, monkey_ops).unwrap(),
+        ),
+        Operation::Equal { left, right } => {
+            if determine_monkey_yell_value(left, monkey_ops).unwrap()
+                == determine_monkey_yell_value(right, monkey_ops).unwrap()
+            {
+                Some(determine_monkey_yell_value(left, monkey_ops).unwrap())
+            } else {
+                None
+            }
         }
     }
 }
@@ -148,5 +183,21 @@ mod test {
         let _solution = solve_part2(&input);
         unimplemented!();
         // assert_eq!("###", solution);
+    }
+
+    /// Tests the Day 21 Part 2 solver method against example input 001.
+    #[test]
+    fn test_day21_part1_t001() {
+        let input = process_input_file("./input/test/day21_t001.txt");
+        let solution = solve_part1(&input);
+        assert_eq!(152, solution);
+    }
+
+    /// Tests the Day 21 Part 2 solver method against example input 001.
+    #[test]
+    fn test_day21_part2_t001() {
+        let input = process_input_file("./input/test/day21_t001.txt");
+        let solution = solve_part2(&input);
+        assert_eq!(301, solution);
     }
 }
