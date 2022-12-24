@@ -8,7 +8,6 @@ use strum_macros::EnumIter;
 
 const PROBLEM_NAME: &str = "Not Enough Minerals";
 const PROBLEM_INPUT_FILE: &str = "./input/day19.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day19_t001.txt";
 const PROBLEM_DAY: u64 = 19;
 
 const PART1_MINUTES_ALLOWED: u64 = 24;
@@ -17,12 +16,13 @@ const PART2_MINUTES_ALLOWED: u64 = 32;
 /// Represents the different kinds of robot.
 #[derive(Copy, Clone, PartialEq, Eq, EnumIter)]
 enum RobotType {
-    OreRobot,
-    ClayRobot,
-    ObsidianRobot,
-    GeodeRobot,
+    Ore,
+    Clay,
+    Obsidian,
+    Geode,
 }
 
+/// Used to track totals associated with the different types of resources.
 #[derive(Clone, Copy, PartialEq, Eq)]
 struct ResourceBag {
     ore: u64,
@@ -41,6 +41,8 @@ impl ResourceBag {
         }
     }
 
+    /// Checks if the other resource bag has less than or equal to the resources of the current
+    /// resource bag.
     pub fn fits_within(&self, other: &ResourceBag) -> bool {
         self.ore >= other.ore
             && self.clay >= other.clay
@@ -48,6 +50,7 @@ impl ResourceBag {
             && self.geode >= other.geode
     }
 
+    /// Returns a resource bag with all fields initialised to zero.
     pub fn blank() -> ResourceBag {
         ResourceBag {
             ore: 0,
@@ -94,7 +97,7 @@ pub fn main() {
     let input_parser_timestamp = Instant::now();
     let input_parser_duration = input_parser_timestamp.duration_since(start);
     // Solve part 1
-    // // let p1_solution = solve_part1(&input);
+    let p1_solution = solve_part1(&input);
     let p1_timestamp = Instant::now();
     let p1_duration = p1_timestamp.duration_since(input_parser_timestamp);
     // Solve part 2
@@ -104,7 +107,7 @@ pub fn main() {
     // Print results
     println!("==================================================");
     println!("AOC 2022 Day {} - \"{}\"", PROBLEM_DAY, PROBLEM_NAME);
-    // // println!("[+] Part 1: {}", p1_solution);
+    println!("[+] Part 1: {}", p1_solution);
     println!("[+] Part 2: {}", p2_solution);
     println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     println!("Execution times:");
@@ -121,7 +124,6 @@ pub fn main() {
 /// Processes the AOC 2022 Day 19 input file in the format required by the solver functions.
 /// Returned value is vector of blueprints specified in the input file.
 fn process_input_file(filename: &str) -> Vec<Blueprint> {
-    println!("[?] Processing input file: {}", filename);
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
@@ -176,7 +178,6 @@ fn process_input_file(filename: &str) -> Vec<Blueprint> {
 fn solve_part1(blueprints: &[Blueprint]) -> u64 {
     let mut total = 0;
     for bp in blueprints {
-        println!("[+] Simulating blueprint {}...", bp.id);
         total += simulate_blueprint(bp, PART1_MINUTES_ALLOWED) * bp.id;
     }
     total
@@ -187,12 +188,13 @@ fn solve_part1(blueprints: &[Blueprint]) -> u64 {
 fn solve_part2(blueprints: &[Blueprint]) -> u64 {
     let mut values: Vec<u64> = vec![];
     for bp in blueprints.iter().take(3) {
-        println!("[+] Simulating blueprint {}...", bp.id);
         values.push(simulate_blueprint(bp, PART2_MINUTES_ALLOWED));
     }
     values.iter().product()
 }
 
+/// Determines the maximum number of geodes that the given blueprint could produce in the allowed
+/// time (measured in minutes).
 fn simulate_blueprint(blueprint: &Blueprint, time_allowed: u64) -> u64 {
     let mut geode_totals: HashSet<u64> = HashSet::new();
     geode_totals.insert(0);
@@ -210,6 +212,8 @@ fn simulate_blueprint(blueprint: &Blueprint, time_allowed: u64) -> u64 {
     *geode_totals.iter().max().unwrap()
 }
 
+/// Recursive helper method used to determine the maximum number of geodes that the given blueprint
+/// can produce in the allowed time (measured in minutes).
 fn simulate_blueprint_recursive(
     blueprint: &Blueprint,
     geode_totals: &mut HashSet<u64>,
@@ -219,12 +223,7 @@ fn simulate_blueprint_recursive(
     earliest_geode_robot_time: &mut u64,
 ) {
     if time_remaining == 0 {
-        if geode_totals.insert(resource_total.geode) {
-            println!(
-                ">>>> [{}] new geode total: {}",
-                blueprint.id, resource_total.geode
-            );
-        }
+        geode_totals.insert(resource_total.geode);
         return;
     }
     // prune
@@ -236,46 +235,49 @@ fn simulate_blueprint_recursive(
         return;
     }
     // Try to build robots
-    let mut build_options: Vec<Option<RobotType>> = vec![None];
-    for robot_type in RobotType::iter() { 
+    let mut to_build: Vec<Option<RobotType>> = vec![None];
+    for robot_type in RobotType::iter() {
         let resources_needed = match robot_type {
-            RobotType::OreRobot => blueprint.ore_robot,
-            RobotType::ClayRobot => blueprint.clay_robot,
-            RobotType::ObsidianRobot => blueprint.obsidian_robot,
-            RobotType::GeodeRobot => blueprint.geode_robot,
+            RobotType::Ore => blueprint.ore_robot,
+            RobotType::Clay => blueprint.clay_robot,
+            RobotType::Obsidian => blueprint.obsidian_robot,
+            RobotType::Geode => blueprint.geode_robot,
         };
         if resource_total.fits_within(&resources_needed) {
-            // build_options.push(Some(robot_type));
-            if robot_type == RobotType::GeodeRobot {
-                build_options = vec![Some(RobotType::GeodeRobot)];
+            if robot_type == RobotType::Geode {
+                to_build = vec![Some(RobotType::Geode)];
                 break;
             } else {
-                build_options.push(Some(robot_type));
+                to_build.push(Some(robot_type));
             }
         }
     }
-    for robot_option in build_options {
+    for robot in to_build {
         let mut robot_construction = ResourceBag::blank();
         let mut resource_total = resource_total;
-        if time_remaining <= 2 && robot_total.geode == 0 && robot_option != Some(RobotType::GeodeRobot) {
+        // prune - dead end if there no geodes with two or less minutes remaining and no geode bots
+        if time_remaining <= 2 && robot_total.geode == 0 && robot != Some(RobotType::Geode) {
             continue;
         }
-        match robot_option {
-            Some(RobotType::OreRobot) => {
+        match robot {
+            Some(RobotType::Ore) => {
+                // prune - don't build a non-geode robot with two or less minutes remaining
                 if time_remaining <= 2 {
                     continue;
                 }
                 robot_construction.ore += 1;
                 resource_total.ore -= blueprint.ore_robot.ore;
             }
-            Some(RobotType::ClayRobot) => {
+            Some(RobotType::Clay) => {
+                // prune - don't build a non-geode robot with two or less minutes remaining
                 if time_remaining <= 2 {
                     continue;
                 }
                 robot_construction.clay += 1;
                 resource_total.ore -= blueprint.clay_robot.ore;
             }
-            Some(RobotType::ObsidianRobot) => {
+            Some(RobotType::Obsidian) => {
+                // prune - don't build a non-geode robot with two or less minutes remaining
                 if time_remaining <= 2 {
                     continue;
                 }
@@ -283,7 +285,7 @@ fn simulate_blueprint_recursive(
                 resource_total.ore -= blueprint.obsidian_robot.ore;
                 resource_total.clay -= blueprint.obsidian_robot.clay;
             }
-            Some(RobotType::GeodeRobot) => {
+            Some(RobotType::Geode) => {
                 if time_remaining > *earliest_geode_robot_time {
                     *earliest_geode_robot_time = time_remaining;
                 }
@@ -293,19 +295,6 @@ fn simulate_blueprint_recursive(
             }
             None => (),
         }
-        // prune
-        // if time_remaining <= 2 && robot_total.geode == 0 && robot_construction.geode == 0 {
-        //     continue;
-        // }
-        // if time_remaining <= 2 && robot_construction.obsidian > 0 {
-        //     continue;
-        // }
-        // if time_remaining <= 2 && robot_construction.clay > 0 {
-        //     continue;
-        // }
-        // if time_remaining <= 2 && robot_construction.ore > 0 {
-        //     continue;
-        // }
         // Collect resources
         let mut resource_total = resource_total;
         resource_total.ore += robot_total.ore;
