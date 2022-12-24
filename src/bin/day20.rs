@@ -3,8 +3,9 @@ use std::time::Instant;
 
 const PROBLEM_NAME: &str = "Grove Positioning System";
 const PROBLEM_INPUT_FILE: &str = "./input/day20.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day20_t001.txt";
 const PROBLEM_DAY: u64 = 20;
+
+const PART2_DECRYPTION_KEY: i64 = 811589153;
 
 /// Processes the AOC 2022 Day 20 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -52,53 +53,78 @@ fn process_input_file(filename: &str) -> Vec<i64> {
         .collect::<Vec<i64>>()
 }
 
-/// Solves AOC 2022 Day 20 Part 1 // ###
-fn solve_part1(input: &[i64]) -> i64 {
-    let mut mixed_values = input
+/// Solves AOC 2022 Day 20 Part 1 // Finds the sum of the three numbers that form the grove
+/// co-ordinates.
+fn solve_part1(values: &[i64]) -> i64 {
+    // Prepare the input values list for mixing - enumerate values
+    let mut values = values
         .iter()
-        .map(|val| (*val, false))
-        .collect::<Vec<(i64, bool)>>();
-    let mut cursor = 0;
-    loop {
-        if cursor >= mixed_values.len() {
-            break;
-        }
-        if mixed_values[cursor].1 {
-            cursor += 1;
-            continue;
-        }
-        let new_index = {
-            let cursor_signed = cursor as i64;
-            let temp_index =
-                (cursor_signed + mixed_values[cursor].0) % (mixed_values.len() - 1) as i64;
-            if temp_index < 0 {
-                mixed_values.len() - 1 - temp_index.unsigned_abs() as usize
-            } else {
-                temp_index as usize
-            }
-        };
-        let old_value = mixed_values[cursor];
-        // mixed_values.remove(cursor);
-        // mixed_values.insert(new_index, old_value);
-        if new_index < cursor {
-            mixed_values.insert(new_index, old_value);
-            mixed_values.remove(cursor + 1);
-        } else if new_index > cursor {
-            mixed_values.remove(cursor);
-            mixed_values.insert(new_index, old_value);
-        }
-        mixed_values[new_index] = (mixed_values[new_index].0, true);
-    }
-    let index_0 = mixed_values.iter().position(|elem| elem.0 == 0).unwrap();
-    let val_1000 = mixed_values[(index_0 + 1000) % mixed_values.len()].0;
-    let val_2000 = mixed_values[(index_0 + 2000) % mixed_values.len()].0;
-    let val_3000 = mixed_values[(index_0 + 3000) % mixed_values.len()].0;
+        .copied()
+        .enumerate()
+        .collect::<Vec<(usize, i64)>>();
+    // Conduct one round of mixing
+    mix_values(&mut values, 1);
+    // Find grove co-ordinates sum
+    let values = values.iter().map(|val| val.1).collect::<Vec<i64>>();
+    find_grove_coordinates_sum(values)
+}
+
+/// Solves AOC 2022 Day 20 Part 2 // Finds the sum of the three numbers that form the grove
+/// co-ordinates after applying the decryption key to the input values and mixing them 10 times.
+fn solve_part2(values: &[i64]) -> i64 {
+    // Prepare the input values list for mixing - apply decryption key and enumerate values
+    let mut values = values
+        .iter()
+        .copied()
+        .map(|val| val * PART2_DECRYPTION_KEY)
+        .enumerate()
+        .collect::<Vec<(usize, i64)>>();
+    // Conduct 10 rounds of mixing
+    mix_values(&mut values, 10);
+    // Find grove co-ordinates sum
+    let values = values.iter().map(|val| val.1).collect::<Vec<i64>>();
+    find_grove_coordinates_sum(values)
+}
+
+/// Finds the sum of the three values that form the grove co-ordinates.
+fn find_grove_coordinates_sum(values: Vec<i64>) -> i64 {
+    let index_0 = values.iter().position(|elem| *elem == 0).unwrap();
+    let val_1000 = values[(index_0 + 1000) % values.len()];
+    let val_2000 = values[(index_0 + 2000) % values.len()];
+    let val_3000 = values[(index_0 + 3000) % values.len()];
     val_1000 + val_2000 + val_3000
 }
 
-/// Solves AOC 2022 Day 20 Part 2 // ###
-fn solve_part2(_input: &[i64]) -> i64 {
-    0
+/// Conducts one round of value mixing.
+fn mix_values(values: &mut Vec<(usize, i64)>, rounds: u64) {
+    for _ in 0..rounds {
+        for i in 0..values.len() {
+            // Find cursor
+            let cursor = values.iter().position(|elem| elem.0 == i).unwrap();
+            // Find the new index
+            let new_index = calculate_new_index(cursor, values);
+            // Shift the old value
+            let old_value = values[cursor];
+            if new_index < cursor {
+                values.insert(new_index, old_value);
+                values.remove(cursor + 1);
+            } else if new_index > cursor {
+                values.remove(cursor);
+                values.insert(new_index, old_value);
+            }
+        }
+    }
+}
+
+/// Calculates the new index for the value at the given cursor location.
+fn calculate_new_index(cursor: usize, values: &mut Vec<(usize, i64)>) -> usize {
+    let cursor_signed = cursor as i64;
+    let temp_index = (cursor_signed + values[cursor].1) % (values.len() - 1) as i64;
+    if temp_index < 0 {
+        values.len() - 1 - temp_index.unsigned_abs() as usize
+    } else {
+        temp_index as usize
+    }
 }
 
 #[cfg(test)]
@@ -117,8 +143,7 @@ mod test {
     #[test]
     fn test_day20_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(8927480683, solution);
     }
 }
