@@ -94,7 +94,7 @@ pub fn main() {
     let input_parser_timestamp = Instant::now();
     let input_parser_duration = input_parser_timestamp.duration_since(start);
     // Solve part 1
-    let p1_solution = solve_part1(&input);
+    // // let p1_solution = solve_part1(&input);
     let p1_timestamp = Instant::now();
     let p1_duration = p1_timestamp.duration_since(input_parser_timestamp);
     // Solve part 2
@@ -104,7 +104,7 @@ pub fn main() {
     // Print results
     println!("==================================================");
     println!("AOC 2022 Day {} - \"{}\"", PROBLEM_DAY, PROBLEM_NAME);
-    println!("[+] Part 1: {}", p1_solution);
+    // // println!("[+] Part 1: {}", p1_solution);
     println!("[+] Part 2: {}", p2_solution);
     println!("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     println!("Execution times:");
@@ -232,7 +232,7 @@ fn simulate_blueprint_recursive(
         return;
     }
     // prune
-    if time_remaining < *earliest_geode_robot_time && robot_total.geode == 0 {
+    if time_remaining + 1 < *earliest_geode_robot_time && robot_total.geode == 0 {
         return;
     }
     // Try to build robots
@@ -257,16 +257,28 @@ fn simulate_blueprint_recursive(
     for robot_option in build_options {
         let mut robot_construction = ResourceBag::blank();
         let mut resource_total = resource_total;
+        if time_remaining <= 2 && robot_total.geode == 0 && robot_option != Some(RobotType::GeodeRobot) {
+            continue;
+        }
         match robot_option {
             Some(RobotType::OreRobot) => {
+                if time_remaining <= 2 {
+                    continue;
+                }
                 robot_construction.ore += 1;
                 resource_total.ore -= blueprint.ore_robot.ore;
             }
             Some(RobotType::ClayRobot) => {
+                if time_remaining <= 2 {
+                    continue;
+                }
                 robot_construction.clay += 1;
                 resource_total.ore -= blueprint.clay_robot.ore;
             }
             Some(RobotType::ObsidianRobot) => {
+                if time_remaining <= 2 {
+                    continue;
+                }
                 robot_construction.obsidian += 1;
                 resource_total.ore -= blueprint.obsidian_robot.ore;
                 resource_total.clay -= blueprint.obsidian_robot.clay;
@@ -282,18 +294,18 @@ fn simulate_blueprint_recursive(
             None => (),
         }
         // prune
-        if time_remaining <= 2 && robot_total.geode == 0 && robot_construction.geode == 0 {
-            continue;
-        }
-        if time_remaining <= 2 && robot_construction.obsidian > 0 {
-            continue;
-        }
-        if time_remaining <= 2 && robot_construction.clay > 0 {
-            continue;
-        }
-        if time_remaining <= 2 && robot_construction.ore > 0 {
-            continue;
-        }
+        // if time_remaining <= 2 && robot_total.geode == 0 && robot_construction.geode == 0 {
+        //     continue;
+        // }
+        // if time_remaining <= 2 && robot_construction.obsidian > 0 {
+        //     continue;
+        // }
+        // if time_remaining <= 2 && robot_construction.clay > 0 {
+        //     continue;
+        // }
+        // if time_remaining <= 2 && robot_construction.ore > 0 {
+        //     continue;
+        // }
         // Collect resources
         let mut resource_total = resource_total;
         resource_total.ore += robot_total.ore;
@@ -334,8 +346,23 @@ mod test {
     #[test]
     fn test_day19_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(10336, solution);
+    }
+
+    /// Tests the Day 19 Part 1 solver method against example input 001.
+    #[test]
+    fn test_day19_part1_t001() {
+        let input = process_input_file("./input/test/day19_t001.txt");
+        let solution = solve_part1(&input);
+        assert_eq!(33, solution);
+    }
+
+    /// Tests the Day 19 Part 2 solver method against example input 001.
+    #[test]
+    fn test_day19_part2_t001() {
+        let input = process_input_file("./input/test/day19_t001.txt");
+        let solution = solve_part2(&input);
+        assert_eq!(3472, solution);
     }
 }
