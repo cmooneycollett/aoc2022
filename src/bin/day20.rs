@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::fs;
 use std::time::Instant;
 
@@ -56,33 +57,24 @@ fn process_input_file(filename: &str) -> Vec<i64> {
 /// Solves AOC 2022 Day 20 Part 1 // Finds the sum of the three numbers that form the grove
 /// co-ordinates.
 fn solve_part1(values: &[i64]) -> i64 {
-    // Prepare the input values list for mixing - enumerate values
-    let mut values = values
-        .iter()
-        .copied()
-        .enumerate()
-        .collect::<Vec<(usize, i64)>>();
     // Conduct one round of mixing
-    mix_values(&mut values, 1);
+    let values = mix_values(values, 1);
     // Find grove co-ordinates sum
-    let values = values.iter().map(|val| val.1).collect::<Vec<i64>>();
     find_grove_coordinates_sum(values)
 }
 
 /// Solves AOC 2022 Day 20 Part 2 // Finds the sum of the three numbers that form the grove
 /// co-ordinates after applying the decryption key to the input values and mixing them 10 times.
 fn solve_part2(values: &[i64]) -> i64 {
-    // Prepare the input values list for mixing - apply decryption key and enumerate values
-    let mut values = values
+    // Prepare the input values list for mixing - apply decryption key
+    let values = values
         .iter()
         .copied()
         .map(|val| val * PART2_DECRYPTION_KEY)
-        .enumerate()
-        .collect::<Vec<(usize, i64)>>();
+        .collect::<Vec<i64>>();
     // Conduct 10 rounds of mixing
-    mix_values(&mut values, 10);
+    let values = mix_values(&values, 10);
     // Find grove co-ordinates sum
-    let values = values.iter().map(|val| val.1).collect::<Vec<i64>>();
     find_grove_coordinates_sum(values)
 }
 
@@ -96,28 +88,42 @@ fn find_grove_coordinates_sum(values: Vec<i64>) -> i64 {
 }
 
 /// Conducts one round of value mixing.
-fn mix_values(values: &mut Vec<(usize, i64)>, rounds: u64) {
+fn mix_values(input_values: &[i64], rounds: u64) -> Vec<i64> {
+    let mut values = input_values
+        .iter()
+        .copied()
+        .enumerate()
+        .collect::<Vec<(usize, i64)>>();
     for _ in 0..rounds {
         for i in 0..values.len() {
             // Find cursor
             let cursor = values.iter().position(|elem| elem.0 == i).unwrap();
             // Find the new index
-            let new_index = calculate_new_index(cursor, values);
+            let new_index = calculate_new_index(cursor, &values);
             // Shift the old value
             let old_value = values[cursor];
-            if new_index < cursor {
-                values.insert(new_index, old_value);
-                values.remove(cursor + 1);
-            } else if new_index > cursor {
-                values.remove(cursor);
-                values.insert(new_index, old_value);
+            match new_index.cmp(&cursor) {
+                Ordering::Less => {
+                    values.insert(new_index, old_value);
+                    values.remove(cursor + 1);
+                }
+                Ordering::Greater => {
+                    values.remove(cursor);
+                    values.insert(new_index, old_value);
+                }
+                Ordering::Equal => (),
             }
         }
     }
+    values
+        .iter()
+        .copied()
+        .map(|elem| elem.1)
+        .collect::<Vec<i64>>()
 }
 
 /// Calculates the new index for the value at the given cursor location.
-fn calculate_new_index(cursor: usize, values: &mut Vec<(usize, i64)>) -> usize {
+fn calculate_new_index(cursor: usize, values: &Vec<(usize, i64)>) -> usize {
     let cursor_signed = cursor as i64;
     let temp_index = (cursor_signed + values[cursor].1) % (values.len() - 1) as i64;
     if temp_index < 0 {
