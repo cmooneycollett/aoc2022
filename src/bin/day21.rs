@@ -1,16 +1,22 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::time::Instant;
 
+use lazy_static::lazy_static;
 use regex::Regex;
 
 const PROBLEM_NAME: &str = "Monkey Math";
 const PROBLEM_INPUT_FILE: &str = "./input/day21.txt";
 const PROBLEM_DAY: u64 = 21;
 
+lazy_static! {
+    static ref REGEX_TOKEN: Regex = Regex::new(r"(\(|\)|\d+|\+|\-|\*|/|[a-z+])").unwrap();
+}
+
 #[derive(Clone, PartialEq, Eq)]
 enum Operation {
     Nop { value: i64 },
+    Variable { var: String },
     Add { left: String, right: String },
     Subtract { left: String, right: String },
     Multiply { left: String, right: String },
@@ -111,25 +117,157 @@ fn solve_part2(monkey_ops: &HashMap<String, Operation>) -> i64 {
     let mut monkey_ops_mod = monkey_ops.clone();
     let old_root_op = monkey_ops.get("root").unwrap();
     let new_root_op = match old_root_op {
-        Operation::Add { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
-        Operation::Subtract { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
-        Operation::Multiply { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
-        Operation::Divide { left, right } => Operation::Equal { left: left.to_string(), right: right.to_string() },
+        Operation::Add { left, right } => Operation::Equal {
+            left: left.to_string(),
+            right: right.to_string(),
+        },
+        Operation::Subtract { left, right } => Operation::Equal {
+            left: left.to_string(),
+            right: right.to_string(),
+        },
+        Operation::Multiply { left, right } => Operation::Equal {
+            left: left.to_string(),
+            right: right.to_string(),
+        },
+        Operation::Divide { left, right } => Operation::Equal {
+            left: left.to_string(),
+            right: right.to_string(),
+        },
         _ => panic!("Bad \"root\" old op!"),
     };
     monkey_ops_mod.insert(String::from("root"), new_root_op);
-    loop {
-        if humn_i % 10000 == 0 {
-            println!("trying to yell {}...", humn_i);
+    monkey_ops_mod.insert(String::from("humn"), Operation::Variable { var: String::from("humn") });
+    // print expression
+    let root_expr = generate_monkey_expression("root", &monkey_ops_mod);
+    let sides = root_expr.split(" = ").map(|side| side.to_string()).collect::<Vec<String>>();
+    let rpn = convert_to_rpn(&sides[1]);
+    let result = evaluate_rpn(&rpn);
+
+    // let test = "4 + 18 / (9 - 3)";
+    // let rpn = convert_to_rpn(test);
+    // let result = evaluate_rpn(&rpn);
+
+
+
+
+    // println!("{}", root_expr);
+    println!("[{}] {:?}", result, rpn);
+    // loop {
+    //     if humn_i % 10000 == 0 {
+    //         println!("trying to yell {}...", humn_i);
+    //     }
+    //     // let mut new_monkey_ops = monkey_ops_mod.clone();
+    //     monkey_ops_mod.insert(String::from("humn"), Operation::Nop { value: humn_i });
+    //     if let Some(_) = determine_monkey_yell_value("root", &monkey_ops_mod) {
+    //         return humn_i;
+    //     }
+    //     humn_i += 1;
+    //     // let new_root_ops = Operation::Equal { left: old_root_op., right: old_root_op.right };
+    // }
+    0
+}
+
+fn evaluate_rpn(rpn: &Vec<String>) -> u64 {
+    let mut stack: VecDeque<String> = VecDeque::new();
+    for token in rpn {
+        if let Ok(_) = token.parse::<u64>() {
+            stack.push_back(token.to_string());
+        } else {
+            let right = stack.pop_back().unwrap().parse::<u64>().unwrap();
+            let left = stack.pop_back().unwrap().parse::<u64>().unwrap();
+            let result = match token.as_str() {
+                "+" => {
+                    left + right
+                }
+                "-" => {
+                    left - right
+                }
+                "*" => {
+                    left * right
+                }
+                "/" => {
+                    left / right
+                }
+                _ => panic!("Bad token in RPN evaluation: {}", token),
+            };
+            stack.push_back(result.to_string());
         }
-        // let mut new_monkey_ops = monkey_ops_mod.clone();
-        monkey_ops_mod.insert(String::from("humn"), Operation::Nop { value: humn_i });
-        if let Some(_) = determine_monkey_yell_value("root", &monkey_ops_mod) {
-            return humn_i;
-        }
-        humn_i += 1;
-        // let new_root_ops = Operation::Equal { left: old_root_op., right: old_root_op.right };
     }
+    stack.pop_back().unwrap().parse::<u64>().unwrap()
+}
+
+/// Converts the given expression to Reverse Polish Notation (RPN).
+fn convert_to_rpn(expr: &str) -> Vec<String> {
+    let expr = expr.replace(' ', "");
+    let mut op_stack: VecDeque<&str> = VecDeque::new();
+    let mut output: Vec<&str> = vec![];
+    for token in REGEX_TOKEN.find_iter(&expr) {
+        let token = token.as_str();
+        if let Ok(_) = token.parse::<u64>() {
+            output.push(token);
+        } else if token == "(" {
+            op_stack.push_back(token);
+        } else if token == ")" {
+            while *op_stack.back().unwrap() != "(" {
+                output.push(op_stack.pop_back().unwrap());
+            }
+            // Discard left parenthesis at top of operator stack
+            op_stack.pop_back().unwrap();
+        } else {
+            while !op_stack.is_empty() && *op_stack.back().unwrap() != "(" && get_precedence(op_stack.back().unwrap()) > get_precedence(token) {
+                output.push(op_stack.pop_back().unwrap());
+            }
+            op_stack.push_back(token);
+        }
+    }
+    while !op_stack.is_empty() {
+        output.push(op_stack.pop_back().unwrap());
+    }
+    output.iter().map(|token| token.to_string()).collect::<Vec<String>>()
+}
+
+/// Gets the precedence of the given operator token.
+fn get_precedence(token: &str) -> u64 {
+    match token {
+        "*" => 3,
+        "/" => 3,
+        "+" => 2,
+        "-" => 2,
+        _ => panic!("Bad token for precedence check: {}", token),
+    }
+}
+
+/// Generates the mathematical expression that will provide the value to be yelled by the monkey.
+fn generate_monkey_expression(name: &str, monkey_ops: &HashMap<String, Operation>) -> String {
+    String::from(match monkey_ops.get(name).unwrap() {
+        Operation::Nop { value } => format!("{}", value),
+        Operation::Variable { var } => format!("{}", var),
+        Operation::Add { left, right } => format!(
+            "({} + {})",
+            generate_monkey_expression(left, monkey_ops),
+            generate_monkey_expression(right, monkey_ops)
+        ),
+        Operation::Subtract { left, right } => format!(
+            "({} - {})",
+            generate_monkey_expression(left, monkey_ops),
+            generate_monkey_expression(right, monkey_ops)
+        ),
+        Operation::Multiply { left, right } => format!(
+            "({} * {})",
+            generate_monkey_expression(left, monkey_ops),
+            generate_monkey_expression(right, monkey_ops)
+        ),
+        Operation::Divide { left, right } => format!(
+            "({} / {})",
+            generate_monkey_expression(left, monkey_ops),
+            generate_monkey_expression(right, monkey_ops)
+        ),
+        Operation::Equal { left, right } => format!(
+            "{} = {}",
+            generate_monkey_expression(left, monkey_ops),
+            generate_monkey_expression(right, monkey_ops)
+        ),
+    })
 }
 
 /// Determines the value that will be yelled by the named monkey.
@@ -161,6 +299,10 @@ fn determine_monkey_yell_value(name: &str, monkey_ops: &HashMap<String, Operatio
                 None
             }
         }
+        Operation::Variable { var } => panic!(
+            "Cannot determine monkey yell value with unknown variable: {}",
+            var
+        ),
     }
 }
 
