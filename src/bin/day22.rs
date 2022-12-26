@@ -1,9 +1,31 @@
+use std::collections::HashMap;
 use std::fs;
 use std::time::Instant;
+
+use regex::Regex;
+
+use aoc2022::utils::cartography::{CardinalDirection, Point2D};
 
 const PROBLEM_NAME: &str = "Monkey Map";
 const PROBLEM_INPUT_FILE: &str = "./input/day22.txt";
 const PROBLEM_DAY: u64 = 22;
+
+/// Represents a single instruction used to navigate the monkey map.
+enum Instruction {
+    RotateLeft,
+    RotateRight,
+    Steps { num: u64 },
+}
+
+/// Represents a single type of tile on the monkey map.
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum TileType {
+    Space,
+    Wall,
+}
+
+/// Type returned from the input parser function.
+type ProblemInput = (HashMap<Point2D, TileType>, Vec<Instruction>);
 
 /// Processes the AOC 2022 Day 22 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -39,22 +61,148 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 22 input file in the format required by the solver functions.
-/// Returned value is ###.
-fn process_input_file(filename: &str) -> String {
+/// Returned value is tuple containing hashmap with tile locations and vector of navigation
+/// instructions.
+fn process_input_file(filename: &str) -> ProblemInput {
     // Read contents of problem input file
-    let _raw_input = fs::read_to_string(filename).unwrap();
+    let raw_input = fs::read_to_string(filename).unwrap();
     // Process input file contents into data structure
-    unimplemented!();
+    let mut tile_map: HashMap<Point2D, TileType> = HashMap::new();
+    let mut instructions: Vec<Instruction> = vec![];
+    let input_file_chunks = raw_input
+        .split("\n\n")
+        .map(|elem| elem.to_string())
+        .collect::<Vec<String>>();
+    // Process the tile map chunk
+    {
+        let mut y = 0;
+        for line in input_file_chunks[0].lines() {
+            if line.is_empty() {
+                continue;
+            }
+            let mut x = 0;
+            for c in line.chars() {
+                match c {
+                    '.' => {
+                        tile_map.insert(Point2D::new(x, y), TileType::Space);
+                    }
+                    '#' => {
+                        tile_map.insert(Point2D::new(x, y), TileType::Wall);
+                    }
+                    _ => (),
+                }
+                x += 1;
+            }
+            y += 1;
+        }
+    }
+    // Process the instructions chunk
+    let regex_token = Regex::new(r"(L|R|\d+)").unwrap();
+    for token in regex_token.find_iter(&input_file_chunks[1]) {
+        let token = token.as_str();
+        match token {
+            "L" => instructions.push(Instruction::RotateLeft),
+            "R" => instructions.push(Instruction::RotateRight),
+            _ => instructions.push(Instruction::Steps {
+                num: token.parse::<u64>().unwrap(),
+            }),
+        }
+    }
+    (tile_map, instructions)
 }
 
-/// Solves AOC 2022 Day 22 Part 1 // ###
-fn solve_part1(_input: &String) -> String {
-    unimplemented!();
+/// Solves AOC 2022 Day 22 Part 1 // Determines the final password after navigating through the
+/// monkey map.
+fn solve_part1(problem_input: &ProblemInput) -> i64 {
+    let (monkey_map, instructions) = problem_input;
+    let start_x = monkey_map
+        .keys()
+        .filter(|elem| elem.get_y() == 0)
+        .map(|elem| elem.get_x())
+        .min()
+        .unwrap();
+    let mut loc = Point2D::new(start_x, 0);
+    let mut dirn = CardinalDirection::East;
+    for instruct in instructions {
+        match instruct {
+            Instruction::RotateLeft => dirn = dirn.rotate90_counterclockwise(),
+            Instruction::RotateRight => dirn = dirn.rotate90_clockwise(),
+            Instruction::Steps { num } => {
+                for _ in 0..*num {
+                    let check_point =  match dirn {
+                        CardinalDirection::North => {
+                            let mut temp = loc.check_move_point(0, -1);
+                            if !monkey_map.contains_key(&temp) {
+                                let new_y = monkey_map
+                                    .keys()
+                                    .filter(|elem| elem.get_x() == loc.get_x())
+                                    .map(|elem| elem.get_y())
+                                    .max()
+                                    .unwrap();
+                                temp.set_y(new_y);
+                            }
+                            temp
+                        }
+                        CardinalDirection::East => {
+                            let mut temp = loc.check_move_point(1, 0);
+                            if !monkey_map.contains_key(&temp) {
+                                let new_x = monkey_map
+                                    .keys()
+                                    .filter(|elem| elem.get_y() == loc.get_y())
+                                    .map(|elem| elem.get_x())
+                                    .min()
+                                    .unwrap();
+                                temp.set_x(new_x);
+                            }
+                            temp
+                        }
+                        CardinalDirection::South => {
+                            let mut temp = loc.check_move_point(0, 1);
+                            if !monkey_map.contains_key(&temp) {
+                                let new_y = monkey_map
+                                    .keys()
+                                    .filter(|elem| elem.get_x() == loc.get_x())
+                                    .map(|elem| elem.get_y())
+                                    .min()
+                                    .unwrap();
+                                temp.set_y(new_y);
+                            }
+                            temp
+                        }
+                        CardinalDirection::West => {
+                            let mut temp = loc.check_move_point(-1, 0);
+                            if !monkey_map.contains_key(&temp) {
+                                let new_x = monkey_map
+                                    .keys()
+                                    .filter(|elem| elem.get_y() == loc.get_y())
+                                    .map(|elem| elem.get_x())
+                                    .max()
+                                    .unwrap();
+                                temp.set_x(new_x);
+                            }
+                            temp
+                        }
+                    };
+                    if *monkey_map.get(&check_point).unwrap() == TileType::Wall {
+                        break;
+                    }
+                    loc = check_point;
+                }
+            }
+        }
+    }
+    let facing: i64 = match dirn {
+        CardinalDirection::East => 0,
+        CardinalDirection::South => 1,
+        CardinalDirection::West => 2,
+        CardinalDirection::North => 3,
+    };
+    (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
 }
 
 /// Solves AOC 2022 Day 22 Part 2 // ###
-fn solve_part2(_input: &String) -> String {
-    unimplemented!();
+fn solve_part2(_problem_input: &ProblemInput) -> u64 {
+    0
 }
 
 #[cfg(test)]
@@ -65,9 +213,8 @@ mod test {
     #[test]
     fn test_day22_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(149138, solution);
     }
 
     /// Tests the Day 22 Part 2 solver method against the actual problem solution.
@@ -77,5 +224,21 @@ mod test {
         let _solution = solve_part2(&input);
         unimplemented!();
         // assert_eq!("###", solution);
+    }
+
+    /// Tests the Day 22 Part 1 solver method against example input 001
+    #[test]
+    fn test_day22_part1_t001() {
+        let input = process_input_file("./input/test/day22_t001.txt");
+        let solution = solve_part1(&input);
+        assert_eq!(6032, solution);
+    }
+
+    /// Tests the Day 22 Part 2 solver method against the actual problem solution.
+    #[test]
+    fn test_day22_part2_t001() {
+        let input = process_input_file("./input/test/day22_t001.txt");
+        let _solution = solve_part2(&input);
+        assert_eq!(1, _solution);
     }
 }
