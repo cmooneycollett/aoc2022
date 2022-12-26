@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, VecDeque};
 use std::fs;
 use std::time::Instant;
@@ -15,7 +16,7 @@ lazy_static! {
 
 #[derive(Clone, PartialEq, Eq)]
 enum Operation {
-    Nop { value: i64 },
+    Nop { value: i128 },
     Variable { var: String },
     Add { left: String, right: String },
     Subtract { left: String, right: String },
@@ -76,7 +77,7 @@ fn process_input_file(filename: &str) -> HashMap<String, Operation> {
         }
         if let Some(caps) = regex_nop.captures(line) {
             let name = caps[1].to_string();
-            let value = caps[2].parse::<i64>().unwrap();
+            let value = caps[2].parse::<i128>().unwrap();
             output.insert(name, Operation::Nop { value });
         } else if let Some(caps) = regex_add.captures(line) {
             let name = caps[1].to_string();
@@ -107,13 +108,14 @@ fn process_input_file(filename: &str) -> HashMap<String, Operation> {
 
 /// Solves AOC 2022 Day 21 Part 1 // Determines the number that the monkey named "root" will yell
 /// out.
-fn solve_part1(monkey_ops: &HashMap<String, Operation>) -> i64 {
+fn solve_part1(monkey_ops: &HashMap<String, Operation>) -> i128 {
     determine_monkey_yell_value("root", monkey_ops).unwrap()
 }
 
-/// Solves AOC 2022 Day 21 Part 2 // ###
-fn solve_part2(monkey_ops: &HashMap<String, Operation>) -> i64 {
-    let mut humn_i = 0;
+/// Solves AOC 2022 Day 21 Part 2 // Determine the number that the protagonist ("humn") needs to
+/// yell for the "root" monkey's equality check to pass.
+fn solve_part2(monkey_ops: &HashMap<String, Operation>) -> i128 {
+    // Replace the "root" and "humn" operations
     let mut monkey_ops_mod = monkey_ops.clone();
     let old_root_op = monkey_ops.get("root").unwrap();
     let new_root_op = match old_root_op {
@@ -136,64 +138,97 @@ fn solve_part2(monkey_ops: &HashMap<String, Operation>) -> i64 {
         _ => panic!("Bad \"root\" old op!"),
     };
     monkey_ops_mod.insert(String::from("root"), new_root_op);
-    monkey_ops_mod.insert(String::from("humn"), Operation::Variable { var: String::from("humn") });
-    // print expression
+    monkey_ops_mod.insert(
+        String::from("humn"),
+        Operation::Variable {
+            var: String::from("humn"),
+        },
+    );
+    // Generate the equality expression for the "root" monkey
     let root_expr = generate_monkey_expression("root", &monkey_ops_mod);
-    let sides = root_expr.split(" = ").map(|side| side.to_string()).collect::<Vec<String>>();
-    let rpn = convert_to_rpn(&sides[1]);
-    let result = evaluate_rpn(&rpn);
-
-    // let test = "4 + 18 / (9 - 3)";
-    // let rpn = convert_to_rpn(test);
-    // let result = evaluate_rpn(&rpn);
-
-
-
-
-    // println!("{}", root_expr);
-    println!("[{}] {:?}", result, rpn);
-    // loop {
-    //     if humn_i % 10000 == 0 {
-    //         println!("trying to yell {}...", humn_i);
-    //     }
-    //     // let mut new_monkey_ops = monkey_ops_mod.clone();
-    //     monkey_ops_mod.insert(String::from("humn"), Operation::Nop { value: humn_i });
-    //     if let Some(_) = determine_monkey_yell_value("root", &monkey_ops_mod) {
-    //         return humn_i;
-    //     }
-    //     humn_i += 1;
-    //     // let new_root_ops = Operation::Equal { left: old_root_op., right: old_root_op.right };
-    // }
-    0
+    let sides = root_expr
+        .split(" = ")
+        .map(|side| side.to_string())
+        .collect::<Vec<String>>();
+    // Find the side of the "root" equation without the "humn" variable
+    let non_humn_side = sides
+        .iter()
+        .filter(|side| !side.contains("humn"))
+        .next()
+        .unwrap();
+    // Find the side of the "root" equation with the "humn" variable
+    let humn_side = sides
+        .iter()
+        .filter(|side| side.contains("humn"))
+        .next()
+        .unwrap();
+    // Evaluate the side of the expression without unknown variables
+    let target = evaluate_expression(non_humn_side);
+    // Specify the starting lower and upper limits for the binary search of the humn value
+    let mut left: i128 = 1;
+    let mut right: i128 = 10_000_000_000_000;
+    // Pre-calculate values to determine if the result increases or decreases with increasing humn
+    let test0 = calculate_result_for_humn_value(humn_side, 0);
+    let test1 = calculate_result_for_humn_value(humn_side, (right - left) / 2);
+    loop {
+        // Determine the mid-point and use it as the value for "humn"
+        let mid = left + (right - left) / 2;
+        let result = calculate_result_for_humn_value(humn_side, mid);
+        // Adjust the binary search mid point
+        match result.cmp(&target) {
+            Ordering::Less => {
+                if test0 < test1 {
+                    // Increasing result with increasing "humn" value - move the lower point up
+                    left = mid;
+                } else {
+                    // Decreasing result with increasing "humn" value - move the upper point down
+                    right = mid;
+                }
+            }
+            Ordering::Greater => {
+                if test0 < test1 {
+                    // Decreasing result with increasing "humn" value - move the upper point down
+                    right = mid;
+                } else {
+                    // Increasing result with increasing "humn" value - move the lower point up
+                    left = mid;
+                }
+            }
+            Ordering::Equal => return mid,
+        }
+    }
 }
 
-fn evaluate_rpn(rpn: &Vec<String>) -> u64 {
+fn calculate_result_for_humn_value(expr: &str, humn_value: i128) -> i128 {
+    let candidate_expr = expr.replace("humn", &humn_value.to_string());
+    evaluate_expression(&candidate_expr)
+}
+
+/// Evaluates the given expression.
+fn evaluate_expression(expr: &str) -> i128 {
+    let rpn = convert_to_rpn(expr);
+    evaluate_rpn(&rpn)
+}
+
+fn evaluate_rpn(rpn: &Vec<String>) -> i128 {
     let mut stack: VecDeque<String> = VecDeque::new();
     for token in rpn {
-        if let Ok(_) = token.parse::<u64>() {
+        if let Ok(_) = token.parse::<i128>() {
             stack.push_back(token.to_string());
         } else {
-            let right = stack.pop_back().unwrap().parse::<u64>().unwrap();
-            let left = stack.pop_back().unwrap().parse::<u64>().unwrap();
+            let right = stack.pop_back().unwrap().parse::<i128>().unwrap();
+            let left = stack.pop_back().unwrap().parse::<i128>().unwrap();
             let result = match token.as_str() {
-                "+" => {
-                    left + right
-                }
-                "-" => {
-                    left - right
-                }
-                "*" => {
-                    left * right
-                }
-                "/" => {
-                    left / right
-                }
+                "+" => left + right,
+                "-" => left - right,
+                "*" => left * right,
+                "/" => left / right,
                 _ => panic!("Bad token in RPN evaluation: {}", token),
             };
             stack.push_back(result.to_string());
         }
     }
-    stack.pop_back().unwrap().parse::<u64>().unwrap()
+    stack.pop_back().unwrap().parse::<i128>().unwrap()
 }
 
 /// Converts the given expression to Reverse Polish Notation (RPN).
@@ -203,7 +238,7 @@ fn convert_to_rpn(expr: &str) -> Vec<String> {
     let mut output: Vec<&str> = vec![];
     for token in REGEX_TOKEN.find_iter(&expr) {
         let token = token.as_str();
-        if let Ok(_) = token.parse::<u64>() {
+        if let Ok(_) = token.parse::<i128>() {
             output.push(token);
         } else if token == "(" {
             op_stack.push_back(token);
@@ -214,7 +249,10 @@ fn convert_to_rpn(expr: &str) -> Vec<String> {
             // Discard left parenthesis at top of operator stack
             op_stack.pop_back().unwrap();
         } else {
-            while !op_stack.is_empty() && *op_stack.back().unwrap() != "(" && get_precedence(op_stack.back().unwrap()) > get_precedence(token) {
+            while !op_stack.is_empty()
+                && *op_stack.back().unwrap() != "("
+                && get_precedence(op_stack.back().unwrap()) > get_precedence(token)
+            {
                 output.push(op_stack.pop_back().unwrap());
             }
             op_stack.push_back(token);
@@ -223,11 +261,14 @@ fn convert_to_rpn(expr: &str) -> Vec<String> {
     while !op_stack.is_empty() {
         output.push(op_stack.pop_back().unwrap());
     }
-    output.iter().map(|token| token.to_string()).collect::<Vec<String>>()
+    output
+        .iter()
+        .map(|token| token.to_string())
+        .collect::<Vec<String>>()
 }
 
 /// Gets the precedence of the given operator token.
-fn get_precedence(token: &str) -> u64 {
+fn get_precedence(token: &str) -> i128 {
     match token {
         "*" => 3,
         "/" => 3,
@@ -271,7 +312,7 @@ fn generate_monkey_expression(name: &str, monkey_ops: &HashMap<String, Operation
 }
 
 /// Determines the value that will be yelled by the named monkey.
-fn determine_monkey_yell_value(name: &str, monkey_ops: &HashMap<String, Operation>) -> Option<i64> {
+fn determine_monkey_yell_value(name: &str, monkey_ops: &HashMap<String, Operation>) -> Option<i128> {
     match monkey_ops.get(name).unwrap() {
         Operation::Nop { value } => Some(*value),
         Operation::Add { left, right } => Some(
@@ -322,9 +363,8 @@ mod test {
     #[test]
     fn test_day21_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(3451534022348, solution);
     }
 
     /// Tests the Day 21 Part 2 solver method against example input 001.
