@@ -1,8 +1,8 @@
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::time::Instant;
 
-use aoc2022::utils::cartography::{CardinalDirection, Point2D};
+use aoc2022::utils::cartography::{CardinalDirection, CompassDirection, Point2D};
 
 const PROBLEM_NAME: &str = "Unstable Diffusion";
 const PROBLEM_INPUT_FILE: &str = "./input/day23.txt";
@@ -132,6 +132,16 @@ fn solve_part1(start_elves: &HashSet<Point2D>) -> usize {
         }
     }
     // Find min and max x- and y-values
+    calculate_empty_spaces_in_bounding_rect(elves)
+}
+
+/// Solves AOC 2022 Day 23 Part 2 // ###
+fn solve_part2(_input: &HashSet<Point2D>) -> usize {
+    0
+}
+
+/// Calculates the number of empty spaces in the smallest rectangle containing each of the elves.
+fn calculate_empty_spaces_in_bounding_rect(elves: HashSet<Point2D>) -> usize {
     let min_x = elves.iter().map(|loc| loc.get_x()).min().unwrap();
     let max_x = elves.iter().map(|loc| loc.get_x()).max().unwrap();
     let min_y = elves.iter().map(|loc| loc.get_y()).min().unwrap();
@@ -140,15 +150,14 @@ fn solve_part1(start_elves: &HashSet<Point2D>) -> usize {
     grid_size - elves.len()
 }
 
-/// Solves AOC 2022 Day 23 Part 2 // ###
-fn solve_part2(_input: &HashSet<Point2D>) -> usize {
-    0
-}
-
 /// Checks if moving to the NORTH is a valid move for the elf.
 fn check_for_north_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<CardinalDirection> {
-    for (dx, dy) in [(-1, -1), (0, -1), (1, -1)] {
-        if elves.contains(&elf_loc.check_move_point(dx, dy)) {
+    for dirn in [
+        CompassDirection::NorthEast,
+        CompassDirection::North,
+        CompassDirection::NorthWest,
+    ] {
+        if elves.contains(&elf_loc.check_move_in_direction(dirn)) {
             return None;
         }
     }
@@ -157,8 +166,12 @@ fn check_for_north_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<C
 
 /// Checks if moving to the SOUTH is a valid move for the elf.
 fn check_for_south_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<CardinalDirection> {
-    for (dx, dy) in [(-1, 1), (0, 1), (1, 1)] {
-        if elves.contains(&elf_loc.check_move_point(dx, dy)) {
+    for dirn in [
+        CompassDirection::SouthEast,
+        CompassDirection::South,
+        CompassDirection::SouthWest,
+    ] {
+        if elves.contains(&elf_loc.check_move_in_direction(dirn)) {
             return None;
         }
     }
@@ -167,8 +180,12 @@ fn check_for_south_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<C
 
 /// Checks if moving to the WEST is a valid move for the elf.
 fn check_for_west_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<CardinalDirection> {
-    for (dx, dy) in [(-1, -1), (-1, 0), (-1, 1)] {
-        if elves.contains(&elf_loc.check_move_point(dx, dy)) {
+    for dirn in [
+        CompassDirection::NorthWest,
+        CompassDirection::West,
+        CompassDirection::SouthWest,
+    ] {
+        if elves.contains(&elf_loc.check_move_in_direction(dirn)) {
             return None;
         }
     }
@@ -177,8 +194,12 @@ fn check_for_west_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<Ca
 
 /// Checks if moving to the EAST is a valid move for the elf.
 fn check_for_east_move(elf_loc: &Point2D, elves: &HashSet<Point2D>) -> Option<CardinalDirection> {
-    for (dx, dy) in [(1, -1), (1, 0), (1, 1)] {
-        if elves.contains(&elf_loc.check_move_point(dx, dy)) {
+    for dirn in [
+        CompassDirection::NorthEast,
+        CompassDirection::East,
+        CompassDirection::SouthEast,
+    ] {
+        if elves.contains(&elf_loc.check_move_in_direction(dirn)) {
             return None;
         }
     }
