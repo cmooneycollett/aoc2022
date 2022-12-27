@@ -2,12 +2,23 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::time::Instant;
 
+use lazy_static::lazy_static;
+
 use aoc2022::utils::cartography::{CardinalDirection, CompassDirection, Point2D};
 
 const PROBLEM_NAME: &str = "Unstable Diffusion";
 const PROBLEM_INPUT_FILE: &str = "./input/day23.txt";
 // const PROBLEM_INPUT_FILE: &str = "./input/test/day23_t001.txt";
 const PROBLEM_DAY: u64 = 23;
+
+lazy_static! {
+    static ref MOVE_CHECKS: [fn(&Point2D, &HashSet<Point2D>) -> Option<CardinalDirection>; 4] = [
+        check_for_north_move,
+        check_for_south_move,
+        check_for_west_move,
+        check_for_east_move,
+    ];
+}
 
 /// Processes the AOC 2022 Day 23 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -63,81 +74,96 @@ fn process_input_file(filename: &str) -> HashSet<Point2D> {
 /// rectangle containing all elves after 10 rounds of movement.
 fn solve_part1(start_elves: &HashSet<Point2D>) -> usize {
     let mut elves = start_elves.clone();
-    // Initialise the move check array
-    let move_checks: [fn(&Point2D, &HashSet<Point2D>) -> Option<CardinalDirection>; 4] = [
-        check_for_north_move,
-        check_for_south_move,
-        check_for_west_move,
-        check_for_east_move,
-    ];
     for round in 0..10 {
-        let mut new_elf_locations: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
-        // check each elf
-        for elf_loc in elves.iter() {
-            // Check surrounding elves
-            let mut no_move = true;
-            for s_loc in elf_loc.get_surrounding_points() {
-                if elves.contains(&s_loc) {
-                    no_move = false;
-                    break;
-                }
-            }
-            // Checks if the elf is staying in its current location for the next round
-            if no_move {
-                if new_elf_locations.contains_key(&elf_loc) {
-                    new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
-                } else {
-                    new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
-                }
-                continue;
-            }
-            // Check for valid move
-            no_move = true;
-            let i = round % 4;
-            for di in 0..4 {
-                if let Some(dirn) = move_checks[(i + di) % 4](&elf_loc, &elves) {
-                    let new_loc = match dirn {
-                        CardinalDirection::North => elf_loc.check_move_point(0, -1),
-                        CardinalDirection::South => elf_loc.check_move_point(0, 1),
-                        CardinalDirection::West => elf_loc.check_move_point(-1, 0),
-                        CardinalDirection::East => elf_loc.check_move_point(1, 0),
-                    };
-                    if new_elf_locations.contains_key(&new_loc) {
-                        new_elf_locations.get_mut(&new_loc).unwrap().push(*elf_loc);
-                    } else {
-                        new_elf_locations.insert(new_loc, vec![*elf_loc]);
-                    }
-                    no_move = false;
-                    break;
-                }
-            }
-            // Check if there was no valid move for the elf
-            if no_move {
-                if new_elf_locations.contains_key(&elf_loc) {
-                    new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
-                } else {
-                    new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
-                }
-                continue;
-            }
-        }
-        // Update the elves
-        elves = HashSet::new();
-        for (new_loc, old_locs) in new_elf_locations.iter() {
-            if old_locs.len() == 1 {
-                elves.insert(*new_loc);
-            } else if old_locs.len() > 1 {
-                elves.extend(old_locs);
-            }
-        }
+        conduct_diffusion_round(&mut elves, round);
     }
     // Find min and max x- and y-values
     calculate_empty_spaces_in_bounding_rect(elves)
 }
 
-/// Solves AOC 2022 Day 23 Part 2 // ###
-fn solve_part2(_input: &HashSet<Point2D>) -> usize {
-    0
+/// Solves AOC 2022 Day 23 Part 2 // Determines the first round in which none of the elves move.
+fn solve_part2(start_elves: &HashSet<Point2D>) -> usize {
+    let mut elves = start_elves.clone();
+    let mut round: usize = 0;
+    loop {
+        // Check if none of the elves move during the diffusion round
+        if conduct_diffusion_round(&mut elves, round) {
+            return round + 1;
+        }
+        round += 1;
+    }
+}
+
+/// Conducts a single diffusion round and updates the elf locations. Returns true if none of the
+/// elves moved during the round.
+fn conduct_diffusion_round(
+    elves: &mut HashSet<Point2D>,
+    round: usize,
+) -> bool {
+    let mut new_elf_locations: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
+    let mut no_move_count = 0;
+    // check each elf
+    for elf_loc in elves.iter() {
+        // Check surrounding elves
+        let mut no_move = true;
+        for s_loc in elf_loc.get_surrounding_points() {
+            if elves.contains(&s_loc) {
+                no_move = false;
+                break;
+            }
+        }
+        // Checks if the elf is staying in its current location for the next round
+        if no_move {
+            no_move_count += 1;
+            if new_elf_locations.contains_key(&elf_loc) {
+                new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
+            } else {
+                new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
+            }
+            continue;
+        }
+        // Check for valid move
+        no_move = true;
+        let i = round % 4;
+        for di in 0..4 {
+            if let Some(dirn) = MOVE_CHECKS[(i + di) % 4](&elf_loc, &*elves) {
+                let new_loc = match dirn {
+                    CardinalDirection::North => elf_loc.check_move_point(0, -1),
+                    CardinalDirection::South => elf_loc.check_move_point(0, 1),
+                    CardinalDirection::West => elf_loc.check_move_point(-1, 0),
+                    CardinalDirection::East => elf_loc.check_move_point(1, 0),
+                };
+                if new_elf_locations.contains_key(&new_loc) {
+                    new_elf_locations.get_mut(&new_loc).unwrap().push(*elf_loc);
+                } else {
+                    new_elf_locations.insert(new_loc, vec![*elf_loc]);
+                }
+                no_move = false;
+                break;
+            }
+        }
+        // Check if there was no valid move for the elf
+        if no_move {
+            no_move_count += 1;
+            if new_elf_locations.contains_key(&elf_loc) {
+                new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
+            } else {
+                new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
+            }
+            continue;
+        }
+    }
+    // Update the elves
+    *elves = HashSet::new();
+    for (new_loc, old_locs) in new_elf_locations.iter() {
+        if old_locs.len() == 1 {
+            elves.insert(*new_loc);
+        } else if old_locs.len() > 1 {
+            elves.extend(old_locs);
+        }
+    }
+    // Check the number of elves that did not move
+    no_move_count == elves.len()
 }
 
 /// Calculates the number of empty spaces in the smallest rectangle containing each of the elves.
@@ -222,9 +248,8 @@ mod test {
     #[test]
     fn test_day23_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(965, solution);
     }
 
     /// Tests the Day 23 Part 1 solver method against example input 001.
@@ -233,5 +258,13 @@ mod test {
         let input = process_input_file("./input/test/day23_t001.txt");
         let solution = solve_part1(&input);
         assert_eq!(110, solution);
+    }
+
+    /// Tests the Day 23 Part 1 solver method against example input 001.
+    #[test]
+    fn test_day23_part2_t001() {
+        let input = process_input_file("./input/test/day23_t001.txt");
+        let solution = solve_part2(&input);
+        assert_eq!(20, solution);
     }
 }
