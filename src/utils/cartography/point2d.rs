@@ -1,3 +1,5 @@
+use super::CompassDirection;
+
 /// Represents a single point in two-dimensional Euclidean space.
 #[derive(Copy, Clone, Hash, PartialEq, Eq, Debug)]
 pub struct Point2D {
@@ -68,5 +70,19 @@ impl Point2D {
     /// Calculates the Manhattan distance between the current point and the other point.
     pub fn calculate_manhattan_distance(&self, other: &Point2D) -> u64 {
         (self.x - other.x).unsigned_abs() + (self.y - other.y).unsigned_abs()
+    }
+
+    /// Gets the point in the given direction from the current point.
+    pub fn check_move_in_direction(&self, dirn: CompassDirection) -> Point2D {
+        match dirn {
+            CompassDirection::North => self.check_move_point(0, -1),
+            CompassDirection::NorthEast => self.check_move_point(1, -1),
+            CompassDirection::East => self.check_move_point(1, 0),
+            CompassDirection::SouthEast => self.check_move_point(1, 1),
+            CompassDirection::South => self.check_move_point(0, 1),
+            CompassDirection::SouthWest => self.check_move_point(-1, 1),
+            CompassDirection::West => self.check_move_point(-1, 0),
+            CompassDirection::NorthWest => self.check_move_point(-1, -1),
+        }
     }
 }
