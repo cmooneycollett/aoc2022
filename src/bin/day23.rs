@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::time::Instant;
@@ -8,11 +10,13 @@ use aoc2022::utils::cartography::{CardinalDirection, CompassDirection, Point2D};
 
 const PROBLEM_NAME: &str = "Unstable Diffusion";
 const PROBLEM_INPUT_FILE: &str = "./input/day23.txt";
-// const PROBLEM_INPUT_FILE: &str = "./input/test/day23_t001.txt";
 const PROBLEM_DAY: u64 = 23;
 
+/// Type declaration to simplify the declaration of the move checks function slice.
+type MoveCheckSlice = [fn(&Point2D, &HashSet<Point2D>) -> Option<CardinalDirection>; 4];
+
 lazy_static! {
-    static ref MOVE_CHECKS: [fn(&Point2D, &HashSet<Point2D>) -> Option<CardinalDirection>; 4] = [
+    static ref MOVE_CHECKS: MoveCheckSlice = [
         check_for_north_move,
         check_for_south_move,
         check_for_west_move,
@@ -96,18 +100,15 @@ fn solve_part2(start_elves: &HashSet<Point2D>) -> usize {
 
 /// Conducts a single diffusion round and updates the elf locations. Returns true if none of the
 /// elves moved during the round.
-fn conduct_diffusion_round(
-    elves: &mut HashSet<Point2D>,
-    round: usize,
-) -> bool {
+fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> bool {
     let mut new_elf_locations: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
     let mut no_move_count = 0;
     // check each elf
-    for elf_loc in elves.iter() {
+    for old_loc in elf_locs.iter() {
         // Check surrounding elves
         let mut no_move = true;
-        for s_loc in elf_loc.get_surrounding_points() {
-            if elves.contains(&s_loc) {
+        for s_loc in old_loc.get_surrounding_points() {
+            if elf_locs.contains(&s_loc) {
                 no_move = false;
                 break;
             }
@@ -115,10 +116,10 @@ fn conduct_diffusion_round(
         // Checks if the elf is staying in its current location for the next round
         if no_move {
             no_move_count += 1;
-            if new_elf_locations.contains_key(&elf_loc) {
-                new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
+            if let Entry::Vacant(e) = new_elf_locations.entry(*old_loc) {
+                e.insert(vec![*old_loc]);
             } else {
-                new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
+                new_elf_locations.get_mut(old_loc).unwrap().push(*old_loc);
             }
             continue;
         }
@@ -126,17 +127,17 @@ fn conduct_diffusion_round(
         no_move = true;
         let i = round % 4;
         for di in 0..4 {
-            if let Some(dirn) = MOVE_CHECKS[(i + di) % 4](&elf_loc, &*elves) {
+            if let Some(dirn) = MOVE_CHECKS[(i + di) % 4](old_loc, elf_locs) {
                 let new_loc = match dirn {
-                    CardinalDirection::North => elf_loc.check_move_point(0, -1),
-                    CardinalDirection::South => elf_loc.check_move_point(0, 1),
-                    CardinalDirection::West => elf_loc.check_move_point(-1, 0),
-                    CardinalDirection::East => elf_loc.check_move_point(1, 0),
+                    CardinalDirection::North => old_loc.check_move_point(0, -1),
+                    CardinalDirection::South => old_loc.check_move_point(0, 1),
+                    CardinalDirection::West => old_loc.check_move_point(-1, 0),
+                    CardinalDirection::East => old_loc.check_move_point(1, 0),
                 };
-                if new_elf_locations.contains_key(&new_loc) {
-                    new_elf_locations.get_mut(&new_loc).unwrap().push(*elf_loc);
+                if let Entry::Vacant(e) = new_elf_locations.entry(new_loc) {
+                    e.insert(vec![*old_loc]);
                 } else {
-                    new_elf_locations.insert(new_loc, vec![*elf_loc]);
+                    new_elf_locations.get_mut(&new_loc).unwrap().push(*old_loc);
                 }
                 no_move = false;
                 break;
@@ -145,25 +146,25 @@ fn conduct_diffusion_round(
         // Check if there was no valid move for the elf
         if no_move {
             no_move_count += 1;
-            if new_elf_locations.contains_key(&elf_loc) {
-                new_elf_locations.get_mut(&elf_loc).unwrap().push(*elf_loc);
+            if let Entry::Vacant(e) = new_elf_locations.entry(*old_loc) {
+                e.insert(vec![*old_loc]);
             } else {
-                new_elf_locations.insert(*elf_loc, vec![*elf_loc]);
+                new_elf_locations.get_mut(old_loc).unwrap().push(*old_loc);
             }
             continue;
         }
     }
     // Update the elves
-    *elves = HashSet::new();
+    *elf_locs = HashSet::new();
     for (new_loc, old_locs) in new_elf_locations.iter() {
-        if old_locs.len() == 1 {
-            elves.insert(*new_loc);
-        } else if old_locs.len() > 1 {
-            elves.extend(old_locs);
+        match old_locs.len().cmp(&1) {
+            Ordering::Equal => _ = elf_locs.insert(*new_loc),
+            Ordering::Greater => elf_locs.extend(old_locs),
+            Ordering::Less => panic!("Should not have empty value in new elf locations!"),
         }
     }
     // Check the number of elves that did not move
-    no_move_count == elves.len()
+    no_move_count == elf_locs.len()
 }
 
 /// Calculates the number of empty spaces in the smallest rectangle containing each of the elves.
