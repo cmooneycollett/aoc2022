@@ -12,7 +12,7 @@ const PROBLEM_NAME: &str = "Unstable Diffusion";
 const PROBLEM_INPUT_FILE: &str = "./input/day23.txt";
 const PROBLEM_DAY: u64 = 23;
 
-/// Simplifies the type declaration of the slice of move checking functions.
+/// Type declaration to simplify the declaration of the move checks function slice.
 type MoveCheckSlice = [fn(&Point2D, &HashSet<Point2D>) -> Option<CardinalDirection>; 4];
 
 lazy_static! {
@@ -101,14 +101,14 @@ fn solve_part2(start_elves: &HashSet<Point2D>) -> usize {
 /// Conducts a single diffusion round and updates the elf locations. Returns true if none of the
 /// elves moved during the round.
 fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> bool {
-    let mut new_elf_locs: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
+    let mut new_elf_locations: HashMap<Point2D, Vec<Point2D>> = HashMap::new();
     let mut no_move_count = 0;
     // check each elf
     for old_loc in elf_locs.iter() {
         // Check surrounding elves
         let mut no_move = true;
-        for surround_loc in old_loc.get_surrounding_points() {
-            if elf_locs.contains(&surround_loc) {
+        for s_loc in old_loc.get_surrounding_points() {
+            if elf_locs.contains(&s_loc) {
                 no_move = false;
                 break;
             }
@@ -116,11 +116,12 @@ fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> boo
         // Checks if the elf is staying in its current location for the next round
         if no_move {
             no_move_count += 1;
-            if let Entry::Vacant(e) = new_elf_locs.entry(*old_loc) {
+            if let Entry::Vacant(e) = new_elf_locations.entry(*old_loc) {
                 e.insert(vec![*old_loc]);
             } else {
-                new_elf_locs.get_mut(old_loc).unwrap().push(*old_loc);
+                new_elf_locations.get_mut(old_loc).unwrap().push(*old_loc);
             }
+            continue;
         }
         // Check for valid move
         no_move = true;
@@ -133,12 +134,11 @@ fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> boo
                     CardinalDirection::West => old_loc.check_move_point(-1, 0),
                     CardinalDirection::East => old_loc.check_move_point(1, 0),
                 };
-                if let Entry::Vacant(e) = new_elf_locs.entry(new_loc) {
+                if let Entry::Vacant(e) = new_elf_locations.entry(new_loc) {
                     e.insert(vec![*old_loc]);
                 } else {
-                    new_elf_locs.get_mut(&new_loc).unwrap().push(*old_loc);
+                    new_elf_locations.get_mut(&new_loc).unwrap().push(*old_loc);
                 }
-                // new_elf_locs.entry(new_loc).or_insert(vec![]).push(*old_loc);
                 no_move = false;
                 break;
             }
@@ -146,21 +146,21 @@ fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> boo
         // Check if there was no valid move for the elf
         if no_move {
             no_move_count += 1;
-            if let Entry::Vacant(e) = new_elf_locs.entry(*old_loc) {
+            if let Entry::Vacant(e) = new_elf_locations.entry(*old_loc) {
                 e.insert(vec![*old_loc]);
             } else {
-                new_elf_locs.get_mut(old_loc).unwrap().push(*old_loc);
+                new_elf_locations.get_mut(old_loc).unwrap().push(*old_loc);
             }
             continue;
         }
     }
     // Update the elves
     *elf_locs = HashSet::new();
-    for (new_loc, old_locs) in new_elf_locs.iter() {
+    for (new_loc, old_locs) in new_elf_locations.iter() {
         match old_locs.len().cmp(&1) {
             Ordering::Equal => _ = elf_locs.insert(*new_loc),
             Ordering::Greater => elf_locs.extend(old_locs),
-            Ordering::Less => panic!("Should not have an empty value in new elf locs!"),
+            Ordering::Less => panic!("Should not have empty value in new elf locations!"),
         }
     }
     // Check the number of elves that did not move
