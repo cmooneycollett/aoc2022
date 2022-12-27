@@ -236,7 +236,8 @@ fn solve_part1(problem_input: &ProblemInput) -> i64 {
     (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
 }
 
-/// Solves AOC 2022 Day 22 Part 2 // ###
+/// Solves AOC 2022 Day 22 Part 2 // Determines the final password after navigating through the
+/// monkey map using the cube-fold wrapping rules.
 fn solve_part2(problem_input: &ProblemInput) -> i64 {
     let (monkey_map, instructions) = problem_input;
     let start_x = monkey_map
@@ -254,141 +255,149 @@ fn solve_part2(problem_input: &ProblemInput) -> i64 {
             Instruction::Steps { num } => {
                 for _ in 0..*num {
                     let side_num = determine_current_side(&loc);
-                    let check_point =  match dirn {
+                    let (check_point, check_dirn) =  match dirn {
                         CardinalDirection::North => {
-                            let mut temp = loc.check_move_point(0, -1);
-                            if !monkey_map.contains_key(&temp) {
+                            let mut temp_loc = loc.check_move_point(0, -1);
+                            let mut temp_dirn = dirn;
+                            if !monkey_map.contains_key(&temp_loc) {
                                 let (new_x, new_y) = {
                                     match side_num {
                                         1 => {
-                                            dirn = CardinalDirection::North;
+                                            temp_dirn = CardinalDirection::North;
                                             let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
                                             (SIDE6_MINMAX.min_x + delta_x, SIDE6_MINMAX.max_y)
                                         }
                                         2 => {
-                                            dirn = CardinalDirection::East;
+                                            temp_dirn = CardinalDirection::East;
                                             let delta_x = loc.get_x() - SIDE2_MINMAX.min_x;
                                             (SIDE6_MINMAX.min_x, SIDE6_MINMAX.min_y + delta_x)
                                         }
                                         5 => {
-                                            dirn = CardinalDirection::East;
+                                            temp_dirn = CardinalDirection::East;
                                             let delta_x = loc.get_x() - SIDE5_MINMAX.min_x;
                                             (SIDE3_MINMAX.min_x, SIDE3_MINMAX.min_y + delta_x)
                                         }
                                         _ => panic!("shouldn't get here!"),
                                     }
                                 };
-                                temp = Point2D::new(new_x, new_y);
+                                temp_loc = Point2D::new(new_x, new_y);
                             }
-                            temp
+                            (temp_loc, temp_dirn)
                         }
                         CardinalDirection::East => {
-                            let mut temp = loc.check_move_point(1, 0);
-                            if !monkey_map.contains_key(&temp) {
+                            let mut temp_loc = loc.check_move_point(1, 0);
+                            let mut temp_dirn = dirn;
+                            if !monkey_map.contains_key(&temp_loc) {
                                 let (new_x, new_y) = {
                                     match side_num {
                                         1 => {
-                                            dirn = CardinalDirection::West;
+                                            temp_dirn = CardinalDirection::West;
                                             let delta_y = loc.get_y() - SIDE1_MINMAX.min_y;
                                             (SIDE4_MINMAX.max_x, SIDE4_MINMAX.max_y - delta_y)
                                         }
                                         3 => {
-                                            dirn = CardinalDirection::North;
+                                            temp_dirn = CardinalDirection::North;
                                             let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
                                             (SIDE1_MINMAX.min_x + delta_y, SIDE1_MINMAX.max_y)
                                         }
                                         4 => {
-                                            dirn = CardinalDirection::West;
+                                            temp_dirn = CardinalDirection::West;
                                             let delta_y = loc.get_y() - SIDE4_MINMAX.min_y;
                                             (SIDE1_MINMAX.max_x, SIDE1_MINMAX.max_y - delta_y)
                                         }
                                         6 => {
-                                            dirn = CardinalDirection::North;
+                                            temp_dirn = CardinalDirection::North;
                                             let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
                                             (SIDE4_MINMAX.min_x + delta_y, SIDE4_MINMAX.max_y)
                                         }
                                         _ => panic!("shouldn't get here!"),
                                     }
                                 };
-                                temp = Point2D::new(new_x, new_y);
+                                temp_loc = Point2D::new(new_x, new_y);
                             }
-                            temp
+                            (temp_loc, temp_dirn)
                         }
                         CardinalDirection::South => {
-                            let mut temp = loc.check_move_point(0, 1);
-                            if !monkey_map.contains_key(&temp) {
+                            let mut temp_loc = loc.check_move_point(0, 1);
+                            let mut temp_dirn = dirn;
+                            if !monkey_map.contains_key(&temp_loc) {
                                 let (new_x, new_y) = {
                                     match side_num {
                                         1 => {
-                                            dirn = CardinalDirection::West;
+                                            temp_dirn = CardinalDirection::West;
                                             let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
                                             (SIDE3_MINMAX.max_x, SIDE3_MINMAX.min_y + delta_x)
                                         }
                                         4 => {
-                                            dirn = CardinalDirection::West;
+                                            temp_dirn = CardinalDirection::West;
                                             let delta_x = loc.get_x() - SIDE4_MINMAX.min_x;
                                             (SIDE6_MINMAX.max_x, SIDE6_MINMAX.min_y + delta_x)
                                         }
                                         6 => {
-                                            dirn = CardinalDirection::South;
+                                            temp_dirn = CardinalDirection::South;
                                             let delta_x = loc.get_x() - SIDE6_MINMAX.min_x;
                                             (SIDE1_MINMAX.min_x + delta_x, SIDE1_MINMAX.min_y)
                                         }
                                         _ => panic!("shouldn't get here!"),
                                     }
                                 };
-                                temp = Point2D::new(new_x, new_y);
+                                temp_loc = Point2D::new(new_x, new_y);
                             }
-                            temp
+                            (temp_loc, temp_dirn)
                         }
                         CardinalDirection::West => {
-                            let mut temp = loc.check_move_point(-1, 0);
-                            if !monkey_map.contains_key(&temp) {
+                            let mut temp_loc = loc.check_move_point(-1, 0);
+                            let mut temp_dirn = dirn;
+                            if !monkey_map.contains_key(&temp_loc) {
                                 let (new_x, new_y) = {
                                     match side_num {
                                         2 => {
-                                            dirn = CardinalDirection::East;
+                                            temp_dirn = CardinalDirection::East;
                                             let delta_y = loc.get_y() - SIDE2_MINMAX.min_y;
                                             (SIDE5_MINMAX.min_x, SIDE5_MINMAX.max_y - delta_y)
                                         }
                                         3 => {
-                                            dirn = CardinalDirection::South;
+                                            temp_dirn = CardinalDirection::South;
                                             let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
                                             (SIDE5_MINMAX.min_x + delta_y, SIDE5_MINMAX.min_y)
                                         }
                                         5 => {
-                                            dirn = CardinalDirection::East;
+                                            temp_dirn = CardinalDirection::East;
                                             let delta_y = loc.get_y() - SIDE5_MINMAX.min_y;
                                             (SIDE2_MINMAX.min_x, SIDE2_MINMAX.max_y - delta_y)
                                         }
                                         6 => {
-                                            dirn = CardinalDirection::South;
+                                            temp_dirn = CardinalDirection::South;
                                             let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
                                             (SIDE2_MINMAX.min_x + delta_y, SIDE2_MINMAX.min_y)
                                         }
                                         _ => panic!("shouldn't get here!"),
                                     }
                                 };
-                                temp = Point2D::new(new_x, new_y);
+                                temp_loc = Point2D::new(new_x, new_y);
                             }
-                            temp
+                            (temp_loc, temp_dirn)
                         }
                     };
-                    println!("{:?}", check_point);
+                    // Check if the movement is blocked
                     if *monkey_map.get(&check_point).unwrap() == TileType::Wall {
                         break;
                     }
+                    // Movement is not blocked, so update the current location and direction
                     loc = check_point;
+                    dirn = check_dirn;
                 }
             }
         }
     }
+    // Calculate the facing score
     let facing: i64 = match dirn {
         CardinalDirection::East => 0,
         CardinalDirection::South => 1,
         CardinalDirection::West => 2,
         CardinalDirection::North => 3,
     };
+    // Calculate the final password score
     (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
 }
 
@@ -426,9 +435,8 @@ mod test {
     #[test]
     fn test_day22_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(153203, solution);
     }
 
     /// Tests the Day 22 Part 1 solver method against example input 001
