@@ -26,14 +26,14 @@ enum TileType {
 }
 
 /// Used to represent the minimum and maximum x- and y-values for the cube sides.
-struct MinMax {
+pub struct CubeFace {
     min_x: i64,
     max_x: i64,
     min_y: i64,
     max_y: i64,
 }
 
-impl MinMax {
+impl CubeFace {
     pub fn new(min_x: i64, max_x: i64, min_y: i64, max_y: i64) -> Self {
         Self {
             min_x,
@@ -43,6 +43,7 @@ impl MinMax {
         }
     }
 
+    /// Checks if the given 2D point within the bounds of the minmax (inclusive).
     pub fn contains_point(&self, point: &Point2D) -> bool {
         self.min_x <= point.get_x()
             && self.max_x >= point.get_x()
@@ -54,14 +55,15 @@ impl MinMax {
 /// Type returned from the input parser function.
 type ProblemInput = (HashMap<Point2D, TileType>, Vec<Instruction>);
 
-lazy_static!(
-    static ref SIDE1_MINMAX: MinMax = MinMax::new(100, 149, 0, 49);
-    static ref SIDE2_MINMAX: MinMax = MinMax::new(50, 99, 0, 49);
-    static ref SIDE3_MINMAX: MinMax = MinMax::new(50, 99, 50, 99);
-    static ref SIDE4_MINMAX: MinMax = MinMax::new(50, 99, 100, 149);
-    static ref SIDE5_MINMAX: MinMax = MinMax::new(0, 49, 100, 149);
-    static ref SIDE6_MINMAX: MinMax = MinMax::new(0, 49, 150, 199);
-);
+// These cube faces are specific to the tile arrangements in the problem input file.
+lazy_static! {
+    static ref SIDE1_MINMAX: CubeFace = CubeFace::new(100, 149, 0, 49);
+    static ref SIDE2_MINMAX: CubeFace = CubeFace::new(50, 99, 0, 49);
+    static ref SIDE3_MINMAX: CubeFace = CubeFace::new(50, 99, 50, 99);
+    static ref SIDE4_MINMAX: CubeFace = CubeFace::new(50, 99, 100, 149);
+    static ref SIDE5_MINMAX: CubeFace = CubeFace::new(0, 49, 100, 149);
+    static ref SIDE6_MINMAX: CubeFace = CubeFace::new(0, 49, 150, 199);
+}
 
 /// Processes the AOC 2022 Day 22 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -110,27 +112,23 @@ fn process_input_file(filename: &str) -> ProblemInput {
         .map(|elem| elem.to_string())
         .collect::<Vec<String>>();
     // Process the tile map chunk
-    {
-        let mut y = 0;
-        for line in input_file_chunks[0].lines() {
-            if line.is_empty() {
-                continue;
-            }
-            let mut x = 0;
-            for c in line.chars() {
-                match c {
-                    '.' => {
-                        tile_map.insert(Point2D::new(x, y), TileType::Space);
-                    }
-                    '#' => {
-                        tile_map.insert(Point2D::new(x, y), TileType::Wall);
-                    }
-                    _ => (),
-                }
-                x += 1;
-            }
-            y += 1;
+    let mut y = 0;
+    for line in input_file_chunks[0].lines() {
+        if line.is_empty() {
+            continue;
         }
+        for (x, tile) in line.chars().enumerate() {
+            match tile {
+                '.' => {
+                    tile_map.insert(Point2D::new(x as i64, y), TileType::Space);
+                }
+                '#' => {
+                    tile_map.insert(Point2D::new(x as i64, y), TileType::Wall);
+                }
+                _ => (),
+            }
+        }
+        y += 1;
     }
     // Process the instructions chunk
     let regex_token = Regex::new(r"(L|R|\d+)").unwrap();
@@ -150,14 +148,9 @@ fn process_input_file(filename: &str) -> ProblemInput {
 /// Solves AOC 2022 Day 22 Part 1 // Determines the final password after navigating through the
 /// monkey map.
 fn solve_part1(problem_input: &ProblemInput) -> i64 {
+    // Initialise the starting location and direction for the protagonist
     let (monkey_map, instructions) = problem_input;
-    let start_x = monkey_map
-        .keys()
-        .filter(|elem| elem.get_y() == 0)
-        .map(|elem| elem.get_x())
-        .min()
-        .unwrap();
-    let mut loc = Point2D::new(start_x, 0);
+    let mut loc = determine_start_location(monkey_map);
     let mut dirn = CardinalDirection::East;
     for instruct in instructions {
         match instruct {
@@ -165,88 +158,33 @@ fn solve_part1(problem_input: &ProblemInput) -> i64 {
             Instruction::RotateRight => dirn = dirn.rotate90_clockwise(),
             Instruction::Steps { num } => {
                 for _ in 0..*num {
-                    let check_point =  match dirn {
-                        CardinalDirection::North => {
-                            let mut temp = loc.check_move_point(0, -1);
-                            if !monkey_map.contains_key(&temp) {
-                                let new_y = monkey_map
-                                    .keys()
-                                    .filter(|elem| elem.get_x() == loc.get_x())
-                                    .map(|elem| elem.get_y())
-                                    .max()
-                                    .unwrap();
-                                temp.set_y(new_y);
-                            }
-                            temp
-                        }
-                        CardinalDirection::East => {
-                            let mut temp = loc.check_move_point(1, 0);
-                            if !monkey_map.contains_key(&temp) {
-                                let new_x = monkey_map
-                                    .keys()
-                                    .filter(|elem| elem.get_y() == loc.get_y())
-                                    .map(|elem| elem.get_x())
-                                    .min()
-                                    .unwrap();
-                                temp.set_x(new_x);
-                            }
-                            temp
-                        }
-                        CardinalDirection::South => {
-                            let mut temp = loc.check_move_point(0, 1);
-                            if !monkey_map.contains_key(&temp) {
-                                let new_y = monkey_map
-                                    .keys()
-                                    .filter(|elem| elem.get_x() == loc.get_x())
-                                    .map(|elem| elem.get_y())
-                                    .min()
-                                    .unwrap();
-                                temp.set_y(new_y);
-                            }
-                            temp
-                        }
-                        CardinalDirection::West => {
-                            let mut temp = loc.check_move_point(-1, 0);
-                            if !monkey_map.contains_key(&temp) {
-                                let new_x = monkey_map
-                                    .keys()
-                                    .filter(|elem| elem.get_y() == loc.get_y())
-                                    .map(|elem| elem.get_x())
-                                    .max()
-                                    .unwrap();
-                                temp.set_x(new_x);
-                            }
-                            temp
-                        }
+                    // Calculate the next location from taking step with the edge-wrap rules
+                    let next_loc = match dirn {
+                        CardinalDirection::North => get_new_loc_north_edgewrap(loc, monkey_map),
+                        CardinalDirection::East => get_new_loc_east_edgewrap(loc, monkey_map),
+                        CardinalDirection::South => get_new_loc_south_edgewrap(loc, monkey_map),
+                        CardinalDirection::West => get_new_loc_west_edgewrap(loc, monkey_map),
                     };
-                    if *monkey_map.get(&check_point).unwrap() == TileType::Wall {
+                    // Stop executing the movement instruction if the next loc contains a WALL
+                    if *monkey_map.get(&next_loc).unwrap() == TileType::Wall {
                         break;
                     }
-                    loc = check_point;
+                    // Update the location
+                    loc = next_loc;
                 }
             }
         }
     }
-    let facing: i64 = match dirn {
-        CardinalDirection::East => 0,
-        CardinalDirection::South => 1,
-        CardinalDirection::West => 2,
-        CardinalDirection::North => 3,
-    };
-    (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
+    // Return the final password score from the location and direction
+    calculate_final_password_score(&dirn, &loc)
 }
 
 /// Solves AOC 2022 Day 22 Part 2 // Determines the final password after navigating through the
 /// monkey map using the cube-fold wrapping rules.
 fn solve_part2(problem_input: &ProblemInput) -> i64 {
+    // Initialise the starting location and direction for the protagonist
     let (monkey_map, instructions) = problem_input;
-    let start_x = monkey_map
-        .keys()
-        .filter(|elem| elem.get_y() == 0)
-        .map(|elem| elem.get_x())
-        .min()
-        .unwrap();
-    let mut loc = Point2D::new(start_x, 0);
+    let mut loc = determine_start_location(monkey_map);
     let mut dirn = CardinalDirection::East;
     for instruct in instructions {
         match instruct {
@@ -254,151 +192,255 @@ fn solve_part2(problem_input: &ProblemInput) -> i64 {
             Instruction::RotateRight => dirn = dirn.rotate90_clockwise(),
             Instruction::Steps { num } => {
                 for _ in 0..*num {
-                    let side_num = determine_current_side(&loc);
-                    let (check_point, check_dirn) =  match dirn {
-                        CardinalDirection::North => {
-                            let mut temp_loc = loc.check_move_point(0, -1);
-                            let mut temp_dirn = dirn;
-                            if !monkey_map.contains_key(&temp_loc) {
-                                let (new_x, new_y) = {
-                                    match side_num {
-                                        1 => {
-                                            temp_dirn = CardinalDirection::North;
-                                            let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
-                                            (SIDE6_MINMAX.min_x + delta_x, SIDE6_MINMAX.max_y)
-                                        }
-                                        2 => {
-                                            temp_dirn = CardinalDirection::East;
-                                            let delta_x = loc.get_x() - SIDE2_MINMAX.min_x;
-                                            (SIDE6_MINMAX.min_x, SIDE6_MINMAX.min_y + delta_x)
-                                        }
-                                        5 => {
-                                            temp_dirn = CardinalDirection::East;
-                                            let delta_x = loc.get_x() - SIDE5_MINMAX.min_x;
-                                            (SIDE3_MINMAX.min_x, SIDE3_MINMAX.min_y + delta_x)
-                                        }
-                                        _ => panic!("shouldn't get here!"),
-                                    }
-                                };
-                                temp_loc = Point2D::new(new_x, new_y);
-                            }
-                            (temp_loc, temp_dirn)
-                        }
-                        CardinalDirection::East => {
-                            let mut temp_loc = loc.check_move_point(1, 0);
-                            let mut temp_dirn = dirn;
-                            if !monkey_map.contains_key(&temp_loc) {
-                                let (new_x, new_y) = {
-                                    match side_num {
-                                        1 => {
-                                            temp_dirn = CardinalDirection::West;
-                                            let delta_y = loc.get_y() - SIDE1_MINMAX.min_y;
-                                            (SIDE4_MINMAX.max_x, SIDE4_MINMAX.max_y - delta_y)
-                                        }
-                                        3 => {
-                                            temp_dirn = CardinalDirection::North;
-                                            let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
-                                            (SIDE1_MINMAX.min_x + delta_y, SIDE1_MINMAX.max_y)
-                                        }
-                                        4 => {
-                                            temp_dirn = CardinalDirection::West;
-                                            let delta_y = loc.get_y() - SIDE4_MINMAX.min_y;
-                                            (SIDE1_MINMAX.max_x, SIDE1_MINMAX.max_y - delta_y)
-                                        }
-                                        6 => {
-                                            temp_dirn = CardinalDirection::North;
-                                            let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
-                                            (SIDE4_MINMAX.min_x + delta_y, SIDE4_MINMAX.max_y)
-                                        }
-                                        _ => panic!("shouldn't get here!"),
-                                    }
-                                };
-                                temp_loc = Point2D::new(new_x, new_y);
-                            }
-                            (temp_loc, temp_dirn)
-                        }
-                        CardinalDirection::South => {
-                            let mut temp_loc = loc.check_move_point(0, 1);
-                            let mut temp_dirn = dirn;
-                            if !monkey_map.contains_key(&temp_loc) {
-                                let (new_x, new_y) = {
-                                    match side_num {
-                                        1 => {
-                                            temp_dirn = CardinalDirection::West;
-                                            let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
-                                            (SIDE3_MINMAX.max_x, SIDE3_MINMAX.min_y + delta_x)
-                                        }
-                                        4 => {
-                                            temp_dirn = CardinalDirection::West;
-                                            let delta_x = loc.get_x() - SIDE4_MINMAX.min_x;
-                                            (SIDE6_MINMAX.max_x, SIDE6_MINMAX.min_y + delta_x)
-                                        }
-                                        6 => {
-                                            temp_dirn = CardinalDirection::South;
-                                            let delta_x = loc.get_x() - SIDE6_MINMAX.min_x;
-                                            (SIDE1_MINMAX.min_x + delta_x, SIDE1_MINMAX.min_y)
-                                        }
-                                        _ => panic!("shouldn't get here!"),
-                                    }
-                                };
-                                temp_loc = Point2D::new(new_x, new_y);
-                            }
-                            (temp_loc, temp_dirn)
-                        }
-                        CardinalDirection::West => {
-                            let mut temp_loc = loc.check_move_point(-1, 0);
-                            let mut temp_dirn = dirn;
-                            if !monkey_map.contains_key(&temp_loc) {
-                                let (new_x, new_y) = {
-                                    match side_num {
-                                        2 => {
-                                            temp_dirn = CardinalDirection::East;
-                                            let delta_y = loc.get_y() - SIDE2_MINMAX.min_y;
-                                            (SIDE5_MINMAX.min_x, SIDE5_MINMAX.max_y - delta_y)
-                                        }
-                                        3 => {
-                                            temp_dirn = CardinalDirection::South;
-                                            let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
-                                            (SIDE5_MINMAX.min_x + delta_y, SIDE5_MINMAX.min_y)
-                                        }
-                                        5 => {
-                                            temp_dirn = CardinalDirection::East;
-                                            let delta_y = loc.get_y() - SIDE5_MINMAX.min_y;
-                                            (SIDE2_MINMAX.min_x, SIDE2_MINMAX.max_y - delta_y)
-                                        }
-                                        6 => {
-                                            temp_dirn = CardinalDirection::South;
-                                            let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
-                                            (SIDE2_MINMAX.min_x + delta_y, SIDE2_MINMAX.min_y)
-                                        }
-                                        _ => panic!("shouldn't get here!"),
-                                    }
-                                };
-                                temp_loc = Point2D::new(new_x, new_y);
-                            }
-                            (temp_loc, temp_dirn)
-                        }
+                    // Calculate the next loc and dirn from taking a step using cube-wrap rules
+                    let (next_loc, next_dirn) = match dirn {
+                        CardinalDirection::North => get_new_loc_dirn_north_cube(loc, monkey_map),
+                        CardinalDirection::East => get_new_loc_dirn_east_cube(loc, monkey_map),
+                        CardinalDirection::South => get_new_loc_dirn_south_cube(loc, monkey_map),
+                        CardinalDirection::West => get_new_loc_dirn_west_cube(loc, monkey_map),
                     };
-                    // Check if the movement is blocked
-                    if *monkey_map.get(&check_point).unwrap() == TileType::Wall {
+                    // Stop executing the movement instruction is the next loc contains a WALL
+                    if *monkey_map.get(&next_loc).unwrap() == TileType::Wall {
                         break;
                     }
                     // Movement is not blocked, so update the current location and direction
-                    loc = check_point;
-                    dirn = check_dirn;
+                    loc = next_loc;
+                    dirn = next_dirn;
                 }
             }
         }
     }
-    // Calculate the facing score
-    let facing: i64 = match dirn {
-        CardinalDirection::East => 0,
-        CardinalDirection::South => 1,
-        CardinalDirection::West => 2,
-        CardinalDirection::North => 3,
-    };
-    // Calculate the final password score
-    (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
+    // Return the final password score from the final direction and location
+    calculate_final_password_score(&dirn, &loc)
+}
+
+/// Determines the top-left-most location in the monkey map, which will be the starting location.
+fn determine_start_location(monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
+    let start_x = monkey_map
+        .keys()
+        .filter(|elem| elem.get_y() == 0)
+        .map(|elem| elem.get_x())
+        .min()
+        .unwrap();
+    Point2D::new(start_x, 0)
+}
+
+/// Gets the new location that would result from the protagonist travelling NORTH by one tile and
+/// following the edge-wrap rules (going to a tile not in the map results in the protagonist
+/// wrapping around to the other end of the same row or column respectively).
+fn get_new_loc_north_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
+    let mut temp_loc = loc.check_move_point(0, -1);
+    if !monkey_map.contains_key(&temp_loc) {
+        let new_y = monkey_map
+            .keys()
+            .filter(|elem| elem.get_x() == loc.get_x())
+            .map(|elem| elem.get_y())
+            .max()
+            .unwrap();
+        temp_loc.set_y(new_y);
+    }
+    temp_loc
+}
+
+/// Gets the new location that would result from the protagonist travelling EAST by one tile and
+/// following the edge-wrap rules (going to a tile not in the map results in the protagonist
+/// wrapping around to the other end of the same row or column respectively).
+fn get_new_loc_east_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
+    let mut temp_loc = loc.check_move_point(1, 0);
+    if !monkey_map.contains_key(&temp_loc) {
+        let new_x = monkey_map
+            .keys()
+            .filter(|elem| elem.get_y() == loc.get_y())
+            .map(|elem| elem.get_x())
+            .min()
+            .unwrap();
+        temp_loc.set_x(new_x);
+    }
+    temp_loc
+}
+
+/// Gets the new location that would result from the protagonist travelling SOUTH by one tile and
+/// following the edge-wrap rules (going to a tile not in the map results in the protagonist
+/// wrapping around to the other end of the same row or column respectively).
+fn get_new_loc_south_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
+    let mut temp_loc = loc.check_move_point(0, 1);
+    if !monkey_map.contains_key(&temp_loc) {
+        let new_y = monkey_map
+            .keys()
+            .filter(|elem| elem.get_x() == loc.get_x())
+            .map(|elem| elem.get_y())
+            .min()
+            .unwrap();
+        temp_loc.set_y(new_y);
+    }
+    temp_loc
+}
+
+/// Gets the new location that would result from the protagonist travelling WEST by one tile and
+/// following the edge-wrap rules (going to a tile not in the map results in the protagonist
+/// wrapping around to the other end of the same row or column respectively).
+fn get_new_loc_west_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
+    let mut temp_loc = loc.check_move_point(-1, 0);
+    if !monkey_map.contains_key(&temp_loc) {
+        let new_x = monkey_map
+            .keys()
+            .filter(|elem| elem.get_y() == loc.get_y())
+            .map(|elem| elem.get_x())
+            .max()
+            .unwrap();
+        temp_loc.set_x(new_x);
+    }
+    temp_loc
+}
+
+/// Gets the new location that would result from the protagonist travelling NORTH by one tile and
+/// following the cube-fold wrapping rules.
+fn get_new_loc_dirn_north_cube(
+    loc: Point2D,
+    monkey_map: &HashMap<Point2D, TileType>,
+) -> (Point2D, CardinalDirection) {
+    let side_num = determine_current_side(&loc);
+    let mut temp_loc = loc.check_move_point(0, -1);
+    let mut temp_dirn = CardinalDirection::North;
+    if !monkey_map.contains_key(&temp_loc) {
+        let (new_x, new_y) = {
+            match side_num {
+                1 => {
+                    temp_dirn = CardinalDirection::North;
+                    let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
+                    (SIDE6_MINMAX.min_x + delta_x, SIDE6_MINMAX.max_y)
+                }
+                2 => {
+                    temp_dirn = CardinalDirection::East;
+                    let delta_x = loc.get_x() - SIDE2_MINMAX.min_x;
+                    (SIDE6_MINMAX.min_x, SIDE6_MINMAX.min_y + delta_x)
+                }
+                5 => {
+                    temp_dirn = CardinalDirection::East;
+                    let delta_x = loc.get_x() - SIDE5_MINMAX.min_x;
+                    (SIDE3_MINMAX.min_x, SIDE3_MINMAX.min_y + delta_x)
+                }
+                _ => panic!("shouldn't get here!"),
+            }
+        };
+        temp_loc = Point2D::new(new_x, new_y);
+    }
+    (temp_loc, temp_dirn)
+}
+
+/// Gets the new location that would result from the protagonist travelling EAST by one tile and
+/// following the cube-fold wrapping rules.
+fn get_new_loc_dirn_east_cube(
+    loc: Point2D,
+    monkey_map: &HashMap<Point2D, TileType>,
+) -> (Point2D, CardinalDirection) {
+    let side_num = determine_current_side(&loc);
+    let mut temp_loc = loc.check_move_point(1, 0);
+    let mut temp_dirn = CardinalDirection::East;
+    if !monkey_map.contains_key(&temp_loc) {
+        let (new_x, new_y) = {
+            match side_num {
+                1 => {
+                    temp_dirn = CardinalDirection::West;
+                    let delta_y = loc.get_y() - SIDE1_MINMAX.min_y;
+                    (SIDE4_MINMAX.max_x, SIDE4_MINMAX.max_y - delta_y)
+                }
+                3 => {
+                    temp_dirn = CardinalDirection::North;
+                    let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
+                    (SIDE1_MINMAX.min_x + delta_y, SIDE1_MINMAX.max_y)
+                }
+                4 => {
+                    temp_dirn = CardinalDirection::West;
+                    let delta_y = loc.get_y() - SIDE4_MINMAX.min_y;
+                    (SIDE1_MINMAX.max_x, SIDE1_MINMAX.max_y - delta_y)
+                }
+                6 => {
+                    temp_dirn = CardinalDirection::North;
+                    let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
+                    (SIDE4_MINMAX.min_x + delta_y, SIDE4_MINMAX.max_y)
+                }
+                _ => panic!("shouldn't get here!"),
+            }
+        };
+        temp_loc = Point2D::new(new_x, new_y);
+    }
+    (temp_loc, temp_dirn)
+}
+
+/// Gets the new location that would result from the protagonist travelling SOUTH by one tile and
+/// following the cube-fold wrapping rules.
+fn get_new_loc_dirn_south_cube(
+    loc: Point2D,
+    monkey_map: &HashMap<Point2D, TileType>,
+) -> (Point2D, CardinalDirection) {
+    let side_num = determine_current_side(&loc);
+    let mut temp_loc = loc.check_move_point(0, 1);
+    let mut temp_dirn = CardinalDirection::South;
+    if !monkey_map.contains_key(&temp_loc) {
+        let (new_x, new_y) = {
+            match side_num {
+                1 => {
+                    temp_dirn = CardinalDirection::West;
+                    let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
+                    (SIDE3_MINMAX.max_x, SIDE3_MINMAX.min_y + delta_x)
+                }
+                4 => {
+                    temp_dirn = CardinalDirection::West;
+                    let delta_x = loc.get_x() - SIDE4_MINMAX.min_x;
+                    (SIDE6_MINMAX.max_x, SIDE6_MINMAX.min_y + delta_x)
+                }
+                6 => {
+                    temp_dirn = CardinalDirection::South;
+                    let delta_x = loc.get_x() - SIDE6_MINMAX.min_x;
+                    (SIDE1_MINMAX.min_x + delta_x, SIDE1_MINMAX.min_y)
+                }
+                _ => panic!("shouldn't get here!"),
+            }
+        };
+        temp_loc = Point2D::new(new_x, new_y);
+    }
+    (temp_loc, temp_dirn)
+}
+
+/// Gets the new location that would result from the protagonist travelling WEST by one tile and
+/// following the cube-fold wrapping rules.
+fn get_new_loc_dirn_west_cube(
+    loc: Point2D,
+    monkey_map: &HashMap<Point2D, TileType>,
+) -> (Point2D, CardinalDirection) {
+    let side_num = determine_current_side(&loc);
+    let mut temp_loc = loc.check_move_point(-1, 0);
+    let mut temp_dirn = CardinalDirection::West;
+    if !monkey_map.contains_key(&temp_loc) {
+        let (new_x, new_y) = {
+            match side_num {
+                2 => {
+                    temp_dirn = CardinalDirection::East;
+                    let delta_y = loc.get_y() - SIDE2_MINMAX.min_y;
+                    (SIDE5_MINMAX.min_x, SIDE5_MINMAX.max_y - delta_y)
+                }
+                3 => {
+                    temp_dirn = CardinalDirection::South;
+                    let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
+                    (SIDE5_MINMAX.min_x + delta_y, SIDE5_MINMAX.min_y)
+                }
+                5 => {
+                    temp_dirn = CardinalDirection::East;
+                    let delta_y = loc.get_y() - SIDE5_MINMAX.min_y;
+                    (SIDE2_MINMAX.min_x, SIDE2_MINMAX.max_y - delta_y)
+                }
+                6 => {
+                    temp_dirn = CardinalDirection::South;
+                    let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
+                    (SIDE2_MINMAX.min_x + delta_y, SIDE2_MINMAX.min_y)
+                }
+                _ => panic!("shouldn't get here!"),
+            }
+        };
+        temp_loc = Point2D::new(new_x, new_y);
+    }
+    (temp_loc, temp_dirn)
 }
 
 /// Determines what side of the cube that the given location is on.
@@ -414,9 +456,20 @@ fn determine_current_side(loc: &Point2D) -> u64 {
     } else if SIDE5_MINMAX.contains_point(loc) {
         return 5;
     } else if SIDE6_MINMAX.contains_point(loc) {
-        return 6
+        return 6;
     }
     panic!("Location is not on a cube side! {:?}", loc);
+}
+
+/// Calculates the final password score from the given location and direction.
+fn calculate_final_password_score(dirn: &CardinalDirection, loc: &Point2D) -> i64 {
+    let facing: i64 = match dirn {
+        CardinalDirection::East => 0,
+        CardinalDirection::South => 1,
+        CardinalDirection::West => 2,
+        CardinalDirection::North => 3,
+    };
+    (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
 }
 
 #[cfg(test)]
@@ -446,12 +499,4 @@ mod test {
         let solution = solve_part1(&input);
         assert_eq!(6032, solution);
     }
-
-    // /// Tests the Day 22 Part 2 solver method against the actual problem solution.
-    // #[test]
-    // fn test_day22_part2_t001() {
-    //     let input = process_input_file("./input/test/day22_t001.txt");
-    //     let solution = solve_part2(&input);
-    //     assert_eq!(5031, solution);
-    // }
 }
