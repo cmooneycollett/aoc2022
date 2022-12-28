@@ -5,31 +5,12 @@ use std::fs;
 use std::time::Instant;
 use std::vec;
 
-use aoc2022::utils::cartography::{CardinalDirection, Point2D};
+use aoc2022::utils::cartography::{CardinalDirection, MinMax2D, Point2D};
 
 const PROBLEM_NAME: &str = "Blizzard Basin";
 // const PROBLEM_INPUT_FILE: &str = "./input/day24.txt";
 const PROBLEM_INPUT_FILE: &str = "./input/test/day24_t001.txt";
 const PROBLEM_DAY: u64 = 24;
-
-/// Represents the area of ground bounding the blizzards.
-struct MinMax2D {
-    min_x: i64,
-    max_x: i64,
-    min_y: i64,
-    max_y: i64,
-}
-
-impl MinMax2D {
-    pub fn new(min_x: i64, max_x: i64, min_y: i64, max_y: i64) -> Self {
-        Self {
-            min_x,
-            max_x,
-            min_y,
-            max_y,
-        }
-    }
-}
 
 type ProblemInput = (
     Point2D,
@@ -144,8 +125,8 @@ fn get_valid_next_locations(
 ) -> Vec<Point2D> {
     let mut output: Vec<Point2D> = vec![];
     for (dx, dy) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
-        let next_loc = loc.check_move_point(dx, dy);
-        if next_loc.get_x() < minmax.min_x || next_loc.get_x() > minmax.max_x || next_loc.get_y() < minmax.min_y || next_loc.get_y() > minmax.max_y {
+        let next_loc = loc.peek_move_point(dx, dy);
+        if !minmax.contains_point(&next_loc) {
             continue;
         }
         if blizzard_state.2.contains(&next_loc) {
@@ -165,30 +146,30 @@ fn update_blizzard_state(
         for bliz in blizzards {
             let new_loc = match bliz {
                 CardinalDirection::North => {
-                    let mut temp_loc = loc.check_move_point(0, -1);
-                    if temp_loc.get_y() < minmax.min_y {
-                        temp_loc.set_y(minmax.max_y);
+                    let mut temp_loc = loc.peek_move_point(0, -1);
+                    if temp_loc.y() < minmax.min_y() {
+                        temp_loc.set_y(minmax.max_y());
                     }
                     temp_loc
                 }
                 CardinalDirection::East => {
-                    let mut temp_loc = loc.check_move_point(1, 0);
-                    if temp_loc.get_x() > minmax.max_x {
-                        temp_loc.set_x(minmax.min_x);
+                    let mut temp_loc = loc.peek_move_point(1, 0);
+                    if temp_loc.x() > minmax.max_x() {
+                        temp_loc.set_x(minmax.min_x());
                     }
                     temp_loc
                 }
                 CardinalDirection::South => {
-                    let mut temp_loc = loc.check_move_point(0, 1);
-                    if temp_loc.get_y() > minmax.max_y {
-                        temp_loc.set_y(minmax.min_y);
+                    let mut temp_loc = loc.peek_move_point(0, 1);
+                    if temp_loc.y() > minmax.max_y() {
+                        temp_loc.set_y(minmax.min_y());
                     }
                     temp_loc
                 }
                 CardinalDirection::West => {
-                    let mut temp_loc = loc.check_move_point(-1, 0);
-                    if temp_loc.get_x() < minmax.min_x {
-                        temp_loc.set_x(minmax.max_x);
+                    let mut temp_loc = loc.peek_move_point(-1, 0);
+                    if temp_loc.x() < minmax.min_x() {
+                        temp_loc.set_x(minmax.max_x());
                     }
                     temp_loc
                 }
