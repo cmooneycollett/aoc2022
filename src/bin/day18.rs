@@ -2,21 +2,11 @@ use std::collections::{HashSet, VecDeque};
 use std::fs;
 use std::time::Instant;
 
-use aoc2022::utils::cartography::Point3D;
+use aoc2022::utils::cartography::{MinMax3D, Point3D};
 
 const PROBLEM_NAME: &str = "Boiling Boulders";
 const PROBLEM_INPUT_FILE: &str = "./input/day18.txt";
 const PROBLEM_DAY: u64 = 18;
-
-/// Used to record the minimum and maximum axis values amongst the observed cubes.
-struct MinMax3D {
-    min_x: i64,
-    max_x: i64,
-    min_y: i64,
-    max_y: i64,
-    min_z: i64,
-    max_z: i64,
-}
 
 /// Processes the AOC 2022 Day 18 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -86,7 +76,7 @@ fn solve_part2(observed_cubes: &HashSet<Point3D>) -> u64 {
 /// Calculates the external surface of the observed cubes using a BFS search method.
 fn calculate_external_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
     let minmax = calculate_minmax_for_observed_cubes(observed_cubes);
-    let start_cube = Point3D::new(minmax.min_x, minmax.min_y, minmax.min_z);
+    let start_cube = Point3D::new(minmax.min_x(), minmax.min_y(), minmax.min_z());
     // Initialise the visit queue and visited locations set
     let mut visit_queue: VecDeque<Point3D> = VecDeque::new();
     visit_queue.push_back(start_cube);
@@ -97,11 +87,9 @@ fn calculate_external_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
     while !visit_queue.is_empty() {
         // Get the next location to check
         let cube = visit_queue.pop_front().unwrap();
-        for adj_cube in get_adjacent_cubes(&cube) {
+        for adj_cube in cube.get_adjacent_points() {
             // Skip the adjacent cube if it's outside bounding volume or already visited
-            if visited.contains(&adj_cube)
-                || check_if_adjacent_cube_is_out_of_bounds(&adj_cube, &minmax)
-            {
+            if visited.contains(&adj_cube) || !minmax.contains_point(&adj_cube) {
                 continue;
             }
             // Check if an external cube side has been found
@@ -117,23 +105,12 @@ fn calculate_external_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
     external_surface_area
 }
 
-/// Checks if the given adjacent cube is out of bounds. Returns true if the adjacent cube is outside
-/// of the bounding volume. Otherwise, returns false;
-fn check_if_adjacent_cube_is_out_of_bounds(adj_cube: &Point3D, minmax: &MinMax3D) -> bool {
-    adj_cube.get_x() < minmax.min_x
-        || adj_cube.get_x() > minmax.max_x
-        || adj_cube.get_y() < minmax.min_y
-        || adj_cube.get_y() > minmax.max_y
-        || adj_cube.get_z() < minmax.min_z
-        || adj_cube.get_z() > minmax.max_z
-}
-
 /// Calculates the total number of faces amongst the observed cubes that are not connected to
 /// another cube.
 fn calculate_total_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
     let mut total_surface_area = 0;
     for cube in observed_cubes {
-        for adj_cube in get_adjacent_cubes(cube) {
+        for adj_cube in cube.get_adjacent_points() {
             if !observed_cubes.contains(&adj_cube) {
                 total_surface_area += 1;
             }
@@ -142,65 +119,21 @@ fn calculate_total_surface_area(observed_cubes: &HashSet<Point3D>) -> u64 {
     total_surface_area
 }
 
-/// Gets the cubes adjacent to the given cube (not including diagonals).
-fn get_adjacent_cubes(cube: &Point3D) -> Vec<Point3D> {
-    let output: Vec<Point3D> = vec![
-        cube.check_move_point(-1, 0, 0), // -dx
-        cube.check_move_point(1, 0, 0),  // +dx
-        cube.check_move_point(0, -1, 0), // -dy
-        cube.check_move_point(0, 1, 0),  // +dy
-        cube.check_move_point(0, 0, -1), // -dz
-        cube.check_move_point(0, 0, 1),  // +dz
-    ];
-    output
-}
-
 /// Determines the minimum and maximum x-, y- and z-values for the volume that entirely contains the
 /// observed cubes such that none of the observed cubes are at the edge. These x-, y- an z-values
 /// (min and max) are calculated by finding the minimum and maximum x-, y- and z-values amongst the
 /// observed cubes, then subtracting 1 for the minimum values and adding 1 for the maximum values.
 fn calculate_minmax_for_observed_cubes(observed_cubes: &HashSet<Point3D>) -> MinMax3D {
     // X
-    let min_x = observed_cubes
-        .iter()
-        .map(|elem| elem.get_x())
-        .min()
-        .unwrap();
-    let max_x = observed_cubes
-        .iter()
-        .map(|elem| elem.get_x())
-        .max()
-        .unwrap();
+    let min_x = observed_cubes.iter().map(|elem| elem.x()).min().unwrap() - 1;
+    let max_x = observed_cubes.iter().map(|elem| elem.x()).max().unwrap() + 1;
     // Y
-    let min_y = observed_cubes
-        .iter()
-        .map(|elem| elem.get_y())
-        .min()
-        .unwrap();
-    let max_y = observed_cubes
-        .iter()
-        .map(|elem| elem.get_y())
-        .max()
-        .unwrap();
+    let min_y = observed_cubes.iter().map(|elem| elem.y()).min().unwrap() - 1;
+    let max_y = observed_cubes.iter().map(|elem| elem.y()).max().unwrap() + 1;
     // Z
-    let min_z = observed_cubes
-        .iter()
-        .map(|elem| elem.get_z())
-        .min()
-        .unwrap();
-    let max_z = observed_cubes
-        .iter()
-        .map(|elem| elem.get_z())
-        .max()
-        .unwrap();
-    MinMax3D {
-        min_x: min_x - 1,
-        max_x: max_x + 1,
-        min_y: min_y - 1,
-        max_y: max_y + 1,
-        min_z: min_z - 1,
-        max_z: max_z + 1,
-    }
+    let min_z = observed_cubes.iter().map(|elem| elem.z()).min().unwrap() - 1;
+    let max_z = observed_cubes.iter().map(|elem| elem.z()).max().unwrap() + 1;
+    MinMax3D::new(min_x, max_x, min_y, max_y, min_z, max_z)
 }
 
 #[cfg(test)]

@@ -129,10 +129,10 @@ fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> boo
         for di in 0..4 {
             if let Some(dirn) = MOVE_CHECKS[(i + di) % 4](old_loc, elf_locs) {
                 let new_loc = match dirn {
-                    CardinalDirection::North => old_loc.check_move_point(0, -1),
-                    CardinalDirection::South => old_loc.check_move_point(0, 1),
-                    CardinalDirection::West => old_loc.check_move_point(-1, 0),
-                    CardinalDirection::East => old_loc.check_move_point(1, 0),
+                    CardinalDirection::North => old_loc.peek_move_point(0, -1),
+                    CardinalDirection::South => old_loc.peek_move_point(0, 1),
+                    CardinalDirection::West => old_loc.peek_move_point(-1, 0),
+                    CardinalDirection::East => old_loc.peek_move_point(1, 0),
                 };
                 if let Entry::Vacant(e) = new_elf_locations.entry(new_loc) {
                     e.insert(vec![*old_loc]);
@@ -169,10 +169,10 @@ fn conduct_diffusion_round(elf_locs: &mut HashSet<Point2D>, round: usize) -> boo
 
 /// Calculates the number of empty spaces in the smallest rectangle containing each of the elves.
 fn calculate_empty_spaces_in_bounding_rect(elves: HashSet<Point2D>) -> usize {
-    let min_x = elves.iter().map(|loc| loc.get_x()).min().unwrap();
-    let max_x = elves.iter().map(|loc| loc.get_x()).max().unwrap();
-    let min_y = elves.iter().map(|loc| loc.get_y()).min().unwrap();
-    let max_y = elves.iter().map(|loc| loc.get_y()).max().unwrap();
+    let min_x = elves.iter().map(|loc| loc.x()).min().unwrap();
+    let max_x = elves.iter().map(|loc| loc.x()).max().unwrap();
+    let min_y = elves.iter().map(|loc| loc.y()).min().unwrap();
+    let max_y = elves.iter().map(|loc| loc.y()).max().unwrap();
     let grid_size: usize = ((max_x - min_x + 1) * (max_y - min_y + 1)) as usize;
     grid_size - elves.len()
 }

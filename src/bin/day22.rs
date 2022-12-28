@@ -5,7 +5,7 @@ use std::time::Instant;
 use lazy_static::lazy_static;
 use regex::Regex;
 
-use aoc2022::utils::cartography::{CardinalDirection, Point2D};
+use aoc2022::utils::cartography::{CardinalDirection, MinMax2D, Point2D};
 
 const PROBLEM_NAME: &str = "Monkey Map";
 const PROBLEM_INPUT_FILE: &str = "./input/day22.txt";
@@ -25,44 +25,17 @@ enum TileType {
     Wall,
 }
 
-/// Used to represent the minimum and maximum x- and y-values for the cube sides.
-pub struct CubeFace {
-    min_x: i64,
-    max_x: i64,
-    min_y: i64,
-    max_y: i64,
-}
-
-impl CubeFace {
-    pub fn new(min_x: i64, max_x: i64, min_y: i64, max_y: i64) -> Self {
-        Self {
-            min_x,
-            max_x,
-            min_y,
-            max_y,
-        }
-    }
-
-    /// Checks if the given 2D point within the bounds of the minmax (inclusive).
-    pub fn contains_point(&self, point: &Point2D) -> bool {
-        self.min_x <= point.get_x()
-            && self.max_x >= point.get_x()
-            && self.min_y <= point.get_y()
-            && self.max_y >= point.get_y()
-    }
-}
-
 /// Type returned from the input parser function.
 type ProblemInput = (HashMap<Point2D, TileType>, Vec<Instruction>);
 
 // These cube faces are specific to the tile arrangements in the problem input file.
 lazy_static! {
-    static ref SIDE1_MINMAX: CubeFace = CubeFace::new(100, 149, 0, 49);
-    static ref SIDE2_MINMAX: CubeFace = CubeFace::new(50, 99, 0, 49);
-    static ref SIDE3_MINMAX: CubeFace = CubeFace::new(50, 99, 50, 99);
-    static ref SIDE4_MINMAX: CubeFace = CubeFace::new(50, 99, 100, 149);
-    static ref SIDE5_MINMAX: CubeFace = CubeFace::new(0, 49, 100, 149);
-    static ref SIDE6_MINMAX: CubeFace = CubeFace::new(0, 49, 150, 199);
+    static ref SIDE1_MINMAX: MinMax2D = MinMax2D::new(100, 149, 0, 49);
+    static ref SIDE2_MINMAX: MinMax2D = MinMax2D::new(50, 99, 0, 49);
+    static ref SIDE3_MINMAX: MinMax2D = MinMax2D::new(50, 99, 50, 99);
+    static ref SIDE4_MINMAX: MinMax2D = MinMax2D::new(50, 99, 100, 149);
+    static ref SIDE5_MINMAX: MinMax2D = MinMax2D::new(0, 49, 100, 149);
+    static ref SIDE6_MINMAX: MinMax2D = MinMax2D::new(0, 49, 150, 199);
 }
 
 /// Processes the AOC 2022 Day 22 input file and solves both parts of the problem. Solutions are
@@ -218,8 +191,8 @@ fn solve_part2(problem_input: &ProblemInput) -> i64 {
 fn determine_start_location(monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
     let start_x = monkey_map
         .keys()
-        .filter(|elem| elem.get_y() == 0)
-        .map(|elem| elem.get_x())
+        .filter(|elem| elem.y() == 0)
+        .map(|elem| elem.x())
         .min()
         .unwrap();
     Point2D::new(start_x, 0)
@@ -229,12 +202,12 @@ fn determine_start_location(monkey_map: &HashMap<Point2D, TileType>) -> Point2D 
 /// following the edge-wrap rules (going to a tile not in the map results in the protagonist
 /// wrapping around to the other end of the same row or column respectively).
 fn get_new_loc_north_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
-    let mut temp_loc = loc.check_move_point(0, -1);
+    let mut temp_loc = loc.peek_move_point(0, -1);
     if !monkey_map.contains_key(&temp_loc) {
         let new_y = monkey_map
             .keys()
-            .filter(|elem| elem.get_x() == loc.get_x())
-            .map(|elem| elem.get_y())
+            .filter(|elem| elem.x() == loc.x())
+            .map(|elem| elem.y())
             .max()
             .unwrap();
         temp_loc.set_y(new_y);
@@ -246,12 +219,12 @@ fn get_new_loc_north_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileTy
 /// following the edge-wrap rules (going to a tile not in the map results in the protagonist
 /// wrapping around to the other end of the same row or column respectively).
 fn get_new_loc_east_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
-    let mut temp_loc = loc.check_move_point(1, 0);
+    let mut temp_loc = loc.peek_move_point(1, 0);
     if !monkey_map.contains_key(&temp_loc) {
         let new_x = monkey_map
             .keys()
-            .filter(|elem| elem.get_y() == loc.get_y())
-            .map(|elem| elem.get_x())
+            .filter(|elem| elem.y() == loc.y())
+            .map(|elem| elem.x())
             .min()
             .unwrap();
         temp_loc.set_x(new_x);
@@ -263,12 +236,12 @@ fn get_new_loc_east_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileTyp
 /// following the edge-wrap rules (going to a tile not in the map results in the protagonist
 /// wrapping around to the other end of the same row or column respectively).
 fn get_new_loc_south_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
-    let mut temp_loc = loc.check_move_point(0, 1);
+    let mut temp_loc = loc.peek_move_point(0, 1);
     if !monkey_map.contains_key(&temp_loc) {
         let new_y = monkey_map
             .keys()
-            .filter(|elem| elem.get_x() == loc.get_x())
-            .map(|elem| elem.get_y())
+            .filter(|elem| elem.x() == loc.x())
+            .map(|elem| elem.y())
             .min()
             .unwrap();
         temp_loc.set_y(new_y);
@@ -280,12 +253,12 @@ fn get_new_loc_south_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileTy
 /// following the edge-wrap rules (going to a tile not in the map results in the protagonist
 /// wrapping around to the other end of the same row or column respectively).
 fn get_new_loc_west_edgewrap(loc: Point2D, monkey_map: &HashMap<Point2D, TileType>) -> Point2D {
-    let mut temp_loc = loc.check_move_point(-1, 0);
+    let mut temp_loc = loc.peek_move_point(-1, 0);
     if !monkey_map.contains_key(&temp_loc) {
         let new_x = monkey_map
             .keys()
-            .filter(|elem| elem.get_y() == loc.get_y())
-            .map(|elem| elem.get_x())
+            .filter(|elem| elem.y() == loc.y())
+            .map(|elem| elem.x())
             .max()
             .unwrap();
         temp_loc.set_x(new_x);
@@ -300,25 +273,25 @@ fn get_new_loc_dirn_north_cube(
     monkey_map: &HashMap<Point2D, TileType>,
 ) -> (Point2D, CardinalDirection) {
     let side_num = determine_current_side(&loc);
-    let mut temp_loc = loc.check_move_point(0, -1);
+    let mut temp_loc = loc.peek_move_point(0, -1);
     let mut temp_dirn = CardinalDirection::North;
     if !monkey_map.contains_key(&temp_loc) {
         let (new_x, new_y) = {
             match side_num {
                 1 => {
                     temp_dirn = CardinalDirection::North;
-                    let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
-                    (SIDE6_MINMAX.min_x + delta_x, SIDE6_MINMAX.max_y)
+                    let delta_x = loc.x() - SIDE1_MINMAX.min_x();
+                    (SIDE6_MINMAX.min_x() + delta_x, SIDE6_MINMAX.max_y())
                 }
                 2 => {
                     temp_dirn = CardinalDirection::East;
-                    let delta_x = loc.get_x() - SIDE2_MINMAX.min_x;
-                    (SIDE6_MINMAX.min_x, SIDE6_MINMAX.min_y + delta_x)
+                    let delta_x = loc.x() - SIDE2_MINMAX.min_x();
+                    (SIDE6_MINMAX.min_x(), SIDE6_MINMAX.min_y() + delta_x)
                 }
                 5 => {
                     temp_dirn = CardinalDirection::East;
-                    let delta_x = loc.get_x() - SIDE5_MINMAX.min_x;
-                    (SIDE3_MINMAX.min_x, SIDE3_MINMAX.min_y + delta_x)
+                    let delta_x = loc.x() - SIDE5_MINMAX.min_x();
+                    (SIDE3_MINMAX.min_x(), SIDE3_MINMAX.min_y() + delta_x)
                 }
                 _ => panic!("shouldn't get here!"),
             }
@@ -335,30 +308,30 @@ fn get_new_loc_dirn_east_cube(
     monkey_map: &HashMap<Point2D, TileType>,
 ) -> (Point2D, CardinalDirection) {
     let side_num = determine_current_side(&loc);
-    let mut temp_loc = loc.check_move_point(1, 0);
+    let mut temp_loc = loc.peek_move_point(1, 0);
     let mut temp_dirn = CardinalDirection::East;
     if !monkey_map.contains_key(&temp_loc) {
         let (new_x, new_y) = {
             match side_num {
                 1 => {
                     temp_dirn = CardinalDirection::West;
-                    let delta_y = loc.get_y() - SIDE1_MINMAX.min_y;
-                    (SIDE4_MINMAX.max_x, SIDE4_MINMAX.max_y - delta_y)
+                    let delta_y = loc.y() - SIDE1_MINMAX.min_y();
+                    (SIDE4_MINMAX.max_x(), SIDE4_MINMAX.max_y() - delta_y)
                 }
                 3 => {
                     temp_dirn = CardinalDirection::North;
-                    let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
-                    (SIDE1_MINMAX.min_x + delta_y, SIDE1_MINMAX.max_y)
+                    let delta_y = loc.y() - SIDE3_MINMAX.min_y();
+                    (SIDE1_MINMAX.min_x() + delta_y, SIDE1_MINMAX.max_y())
                 }
                 4 => {
                     temp_dirn = CardinalDirection::West;
-                    let delta_y = loc.get_y() - SIDE4_MINMAX.min_y;
-                    (SIDE1_MINMAX.max_x, SIDE1_MINMAX.max_y - delta_y)
+                    let delta_y = loc.y() - SIDE4_MINMAX.min_y();
+                    (SIDE1_MINMAX.max_x(), SIDE1_MINMAX.max_y() - delta_y)
                 }
                 6 => {
                     temp_dirn = CardinalDirection::North;
-                    let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
-                    (SIDE4_MINMAX.min_x + delta_y, SIDE4_MINMAX.max_y)
+                    let delta_y = loc.y() - SIDE6_MINMAX.min_y();
+                    (SIDE4_MINMAX.min_x() + delta_y, SIDE4_MINMAX.max_y())
                 }
                 _ => panic!("shouldn't get here!"),
             }
@@ -375,25 +348,25 @@ fn get_new_loc_dirn_south_cube(
     monkey_map: &HashMap<Point2D, TileType>,
 ) -> (Point2D, CardinalDirection) {
     let side_num = determine_current_side(&loc);
-    let mut temp_loc = loc.check_move_point(0, 1);
+    let mut temp_loc = loc.peek_move_point(0, 1);
     let mut temp_dirn = CardinalDirection::South;
     if !monkey_map.contains_key(&temp_loc) {
         let (new_x, new_y) = {
             match side_num {
                 1 => {
                     temp_dirn = CardinalDirection::West;
-                    let delta_x = loc.get_x() - SIDE1_MINMAX.min_x;
-                    (SIDE3_MINMAX.max_x, SIDE3_MINMAX.min_y + delta_x)
+                    let delta_x = loc.x() - SIDE1_MINMAX.min_x();
+                    (SIDE3_MINMAX.max_x(), SIDE3_MINMAX.min_y() + delta_x)
                 }
                 4 => {
                     temp_dirn = CardinalDirection::West;
-                    let delta_x = loc.get_x() - SIDE4_MINMAX.min_x;
-                    (SIDE6_MINMAX.max_x, SIDE6_MINMAX.min_y + delta_x)
+                    let delta_x = loc.x() - SIDE4_MINMAX.min_x();
+                    (SIDE6_MINMAX.max_x(), SIDE6_MINMAX.min_y() + delta_x)
                 }
                 6 => {
                     temp_dirn = CardinalDirection::South;
-                    let delta_x = loc.get_x() - SIDE6_MINMAX.min_x;
-                    (SIDE1_MINMAX.min_x + delta_x, SIDE1_MINMAX.min_y)
+                    let delta_x = loc.x() - SIDE6_MINMAX.min_x();
+                    (SIDE1_MINMAX.min_x() + delta_x, SIDE1_MINMAX.min_y())
                 }
                 _ => panic!("shouldn't get here!"),
             }
@@ -410,30 +383,30 @@ fn get_new_loc_dirn_west_cube(
     monkey_map: &HashMap<Point2D, TileType>,
 ) -> (Point2D, CardinalDirection) {
     let side_num = determine_current_side(&loc);
-    let mut temp_loc = loc.check_move_point(-1, 0);
+    let mut temp_loc = loc.peek_move_point(-1, 0);
     let mut temp_dirn = CardinalDirection::West;
     if !monkey_map.contains_key(&temp_loc) {
         let (new_x, new_y) = {
             match side_num {
                 2 => {
                     temp_dirn = CardinalDirection::East;
-                    let delta_y = loc.get_y() - SIDE2_MINMAX.min_y;
-                    (SIDE5_MINMAX.min_x, SIDE5_MINMAX.max_y - delta_y)
+                    let delta_y = loc.y() - SIDE2_MINMAX.min_y();
+                    (SIDE5_MINMAX.min_x(), SIDE5_MINMAX.max_y() - delta_y)
                 }
                 3 => {
                     temp_dirn = CardinalDirection::South;
-                    let delta_y = loc.get_y() - SIDE3_MINMAX.min_y;
-                    (SIDE5_MINMAX.min_x + delta_y, SIDE5_MINMAX.min_y)
+                    let delta_y = loc.y() - SIDE3_MINMAX.min_y();
+                    (SIDE5_MINMAX.min_x() + delta_y, SIDE5_MINMAX.min_y())
                 }
                 5 => {
                     temp_dirn = CardinalDirection::East;
-                    let delta_y = loc.get_y() - SIDE5_MINMAX.min_y;
-                    (SIDE2_MINMAX.min_x, SIDE2_MINMAX.max_y - delta_y)
+                    let delta_y = loc.y() - SIDE5_MINMAX.min_y();
+                    (SIDE2_MINMAX.min_x(), SIDE2_MINMAX.max_y() - delta_y)
                 }
                 6 => {
                     temp_dirn = CardinalDirection::South;
-                    let delta_y = loc.get_y() - SIDE6_MINMAX.min_y;
-                    (SIDE2_MINMAX.min_x + delta_y, SIDE2_MINMAX.min_y)
+                    let delta_y = loc.y() - SIDE6_MINMAX.min_y();
+                    (SIDE2_MINMAX.min_x() + delta_y, SIDE2_MINMAX.min_y())
                 }
                 _ => panic!("shouldn't get here!"),
             }
@@ -469,7 +442,7 @@ fn calculate_final_password_score(dirn: &CardinalDirection, loc: &Point2D) -> i6
         CardinalDirection::West => 2,
         CardinalDirection::North => 3,
     };
-    (loc.get_y() + 1) * 1000 + (loc.get_x() + 1) * 4 + facing
+    (loc.y() + 1) * 1000 + (loc.x() + 1) * 4 + facing
 }
 
 #[cfg(test)]

@@ -148,7 +148,7 @@ fn get_next_valid_points(
     let mut valid_points: Vec<Point2D> = vec![];
     // Check the points to the left, up, right and down directions
     for (delta_x, delta_y) in &[(1, 0), (-1, 0), (0, 1), (0, -1)] {
-        let check_loc = loc.check_move_point(*delta_x, *delta_y);
+        let check_loc = loc.peek_move_point(*delta_x, *delta_y);
         // Determine the left and right points so elevation check is carried out correctly
         let left = {
             if reverse_course {

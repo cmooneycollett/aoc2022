@@ -108,15 +108,15 @@ fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> us
             // Move the first knot
             let mut new_knots: Vec<Point2D> = vec![];
             match move_type {
-                MoveType::Up => new_knots.push(knots[0].check_move_point(0, -1)),
-                MoveType::Down => new_knots.push(knots[0].check_move_point(0, 1)),
-                MoveType::Left => new_knots.push(knots[0].check_move_point(-1, 0)),
-                MoveType::Right => new_knots.push(knots[0].check_move_point(1, 0)),
+                MoveType::Up => new_knots.push(knots[0].peek_move_point(0, -1)),
+                MoveType::Down => new_knots.push(knots[0].peek_move_point(0, 1)),
+                MoveType::Left => new_knots.push(knots[0].peek_move_point(-1, 0)),
+                MoveType::Right => new_knots.push(knots[0].peek_move_point(1, 0)),
             }
             // Now move the following knots
             for i in 1..rope_len {
-                let delta_x = new_knots[i - 1].get_x() - knots[i].get_x();
-                let delta_y = new_knots[i - 1].get_y() - knots[i].get_y();
+                let delta_x = new_knots[i - 1].x() - knots[i].x();
+                let delta_y = new_knots[i - 1].y() - knots[i].y();
                 if delta_x.abs() >= 2 || delta_y.abs() >= 2 {
                     // Normalise delta_x
                     let dx = {
@@ -138,7 +138,7 @@ fn process_rope_moves(instructions: &[(MoveType, usize)], rope_len: usize) -> us
                             0
                         }
                     };
-                    new_knots.push(knots[i].check_move_point(delta_x - dx, delta_y - dy));
+                    new_knots.push(knots[i].peek_move_point(delta_x - dx, delta_y - dy));
                 } else {
                     new_knots.push(knots[i]);
                 }
