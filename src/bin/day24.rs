@@ -1,6 +1,6 @@
 use core::panic;
 use std::collections::hash_map::Entry;
-use std::collections::{HashMap, VecDeque, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::time::Instant;
 use std::vec;
@@ -8,16 +8,24 @@ use std::vec;
 use aoc2022::utils::cartography::{CardinalDirection, MinMax2D, Point2D};
 
 const PROBLEM_NAME: &str = "Blizzard Basin";
-// const PROBLEM_INPUT_FILE: &str = "./input/day24.txt";
-const PROBLEM_INPUT_FILE: &str = "./input/test/day24_t001.txt";
+const PROBLEM_INPUT_FILE: &str = "./input/day24.txt";
 const PROBLEM_DAY: u64 = 24;
 
+/// Type declaration to simply input parser and part solver function signatures.
 type ProblemInput = (
     Point2D,
     Point2D,
     MinMax2D,
-    HashMap<Point2D, Vec<CardinalDirection>>,
+    BlizzardState,
 );
+
+/// Represents a blizzard map state.
+#[derive(Clone)]
+struct BlizzardState {
+    minutes: u64,
+    map: HashMap<Point2D, Vec<CardinalDirection>>,
+    locs: HashSet<Point2D>,
+}
 
 /// Processes the AOC 2022 Day 24 input file and solves both parts of the problem. Solutions are
 /// printed to stdout.
@@ -53,7 +61,8 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 24 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is tuple containing the: start location, end location, minmax bounding area for
+/// the blizzards and the initial blizzard state.
 fn process_input_file(filename: &str) -> ProblemInput {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
@@ -87,49 +96,72 @@ fn process_input_file(filename: &str) -> ProblemInput {
         }
     }
     let minmax = MinMax2D::new(1, max_x as i64 - 1, 1, max_y as i64 - 1);
-    (start_loc.unwrap(), end_loc.unwrap(), minmax, blizzard_locs)
+    let blizzard_state = BlizzardState {
+        minutes: 0,
+        map: blizzard_locs.clone(),
+        locs: blizzard_locs.keys().copied().collect::<HashSet<Point2D>>(),
+    };
+    (start_loc.unwrap(), end_loc.unwrap(), minmax, blizzard_state)
 }
 
-/// Solves AOC 2022 Day 24 Part 1 // ###
-fn solve_part1(input: &ProblemInput) -> u64 {
-    let (start_loc, end_loc, minmax, blizzard_locs) = input;
-    let mut blizzard_state: (u64, HashMap<Point2D, Vec<CardinalDirection>>, HashSet<Point2D>) =
-        (0, blizzard_locs.clone(), blizzard_locs.keys().copied().collect::<HashSet<Point2D>>());
+/// Solves AOC 2022 Day 24 Part 1 // Determines the fewest number of minutes required to avoid the
+/// blizzards and reach the goal.
+fn solve_part1(problem_input: &ProblemInput) -> u64 {
+    let (start_loc, end_loc, minmax, initial_blizzard_state) = problem_input;
+    // Initialise the collection of locations that are exceptions to the minmax bounding area
+    let wall_openings: HashSet<Point2D> = HashSet::from([*start_loc, *end_loc]);
     let mut visit_queue: VecDeque<(u64, Point2D)> = VecDeque::from([(0, *start_loc)]);
+    // Initialise the blizzard state
+    let mut blizzard_state = initial_blizzard_state.clone();
+    // Track the different locations visited at different times
+    let mut visited: HashSet<(u64, Point2D)> = HashSet::new();
+    visited.insert((0, *start_loc));
+    // blizzard_state = update_blizzard_state(&blizzard_state, minmax);
     while !visit_queue.is_empty() {
         // Get the next location to visit
         let (minutes, loc) = visit_queue.pop_front().unwrap();
-        if blizzard_state.2.contains(&loc) {
-            continue;
-        }
         // Update the blizzard state
-        if minutes > blizzard_state.0 {
+        if blizzard_state.minutes == minutes {
             blizzard_state = update_blizzard_state(&blizzard_state, minmax);
         }
-        // Check if the end location has been reached
-        if loc == *end_loc {
-            return minutes;
-        }
-        visit_queue.push_back((minutes + 1, loc));
-        for next_loc in get_valid_next_locations(&loc, minmax, &blizzard_state) {
-            visit_queue.push_back((minutes + 1, next_loc));
+        for next_loc in get_valid_next_locations(&loc, minmax, &blizzard_state, &wall_openings) {
+            // Check if the end location has been reached
+            if next_loc == *end_loc {
+                return minutes + 1;
+            }
+            let next_visit = (minutes + 1, next_loc);
+            if !visited.contains(&next_visit) {
+                visit_queue.push_back(next_visit);
+                visited.insert(next_visit);
+            }
         }
     }
     panic!("Should not get here!");
 }
 
+/// Solves AOC 2022 Day 24 Part 2 // ###
+fn solve_part2(_input: &ProblemInput) -> u64 {
+    0
+}
+
+/// Gets the valid next locations from the current location.
 fn get_valid_next_locations(
     loc: &Point2D,
     minmax: &MinMax2D,
-    blizzard_state: &(u64, HashMap<Point2D, Vec<CardinalDirection>>, HashSet<Point2D>),
+    blizzard_state: &BlizzardState,
+    wall_openings: &HashSet<Point2D>,
 ) -> Vec<Point2D> {
     let mut output: Vec<Point2D> = vec![];
-    for (dx, dy) in [(0, -1), (1, 0), (0, 1), (-1, 0)] {
+    for (dx, dy) in [(0, -1), (1, 0), (0, 1), (-1, 0), (0, 0)] {
         let next_loc = loc.peek_move_point(dx, dy);
+        if wall_openings.contains(&next_loc) {
+            output.push(next_loc);
+            continue;
+        }
         if !minmax.contains_point(&next_loc) {
             continue;
         }
-        if blizzard_state.2.contains(&next_loc) {
+        if blizzard_state.locs.contains(&next_loc) {
             continue;
         }
         output.push(next_loc);
@@ -137,12 +169,11 @@ fn get_valid_next_locations(
     output
 }
 
-fn update_blizzard_state(
-    blizzard_state: &(u64, HashMap<Point2D, Vec<CardinalDirection>>, HashSet<Point2D>),
-    minmax: &MinMax2D,
-) -> (u64, HashMap<Point2D, Vec<CardinalDirection>>, HashSet<Point2D>) {
+/// Updates the blizzard state by moving each of the blizzards in their set direction and wrapping
+/// around any blizzards that reach the walls.
+fn update_blizzard_state(blizzard_state: &BlizzardState, minmax: &MinMax2D) -> BlizzardState {
     let mut new_blizzard_map: HashMap<Point2D, Vec<CardinalDirection>> = HashMap::new();
-    for (loc, blizzards) in blizzard_state.1.iter() {
+    for (loc, blizzards) in blizzard_state.map.iter() {
         for bliz in blizzards {
             let new_loc = match bliz {
                 CardinalDirection::North => {
@@ -181,12 +212,14 @@ fn update_blizzard_state(
             }
         }
     }
-    (blizzard_state.0 + 1, new_blizzard_map.clone(), new_blizzard_map.keys().copied().collect::<HashSet<Point2D>>())
-}
-
-/// Solves AOC 2022 Day 24 Part 2 // ###
-fn solve_part2(_input: &ProblemInput) -> String {
-    unimplemented!();
+    BlizzardState {
+        minutes: blizzard_state.minutes + 1,
+        map: new_blizzard_map.clone(),
+        locs: new_blizzard_map
+            .keys()
+            .copied()
+            .collect::<HashSet<Point2D>>(),
+    }
 }
 
 #[cfg(test)]
@@ -197,9 +230,8 @@ mod test {
     #[test]
     fn test_day24_part1_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part1(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part1(&input);
+        assert_eq!(240, solution);
     }
 
     /// Tests the Day 24 Part 2 solver method against the actual problem solution.
@@ -209,5 +241,13 @@ mod test {
         let _solution = solve_part2(&input);
         unimplemented!();
         // assert_eq!("###", solution);
+    }
+
+    /// Tests the Day 24 Part 1 solver method against example input 001.
+    #[test]
+    fn test_day24_part1_t001() {
+        let input = process_input_file("./input/test/day24_t001.txt");
+        let solution = solve_part1(&input);
+        assert_eq!(18, solution);
     }
 }
