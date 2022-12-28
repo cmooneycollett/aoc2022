@@ -45,7 +45,7 @@ pub fn main() {
 }
 
 /// Processes the AOC 2022 Day 25 input file in the format required by the solver functions.
-/// Returned value is ###.
+/// Returned value is vector of SNAFU number strings given in the input file.
 fn process_input_file(filename: &str) -> Vec<String> {
     // Read contents of problem input file
     let raw_input = fs::read_to_string(filename).unwrap();
@@ -56,25 +56,6 @@ fn process_input_file(filename: &str) -> Vec<String> {
         .map(|line| line.trim().to_string())
         .filter(|line| !line.is_empty())
         .collect::<Vec<String>>()
-    // let mut output: Vec<Vec<i64>> = vec![];
-    // for line in raw_input.lines() {
-    //     let line = line.trim();
-    //     if line.is_empty() {
-    //         continue;
-    //     }
-    //     let mut digits: Vec<i64> = vec![];
-    //     for c in line.chars().rev() {
-    //         match c {
-    //             '0' => digits.push(0),
-    //             '1' => digits.push(1),
-    //             '2' => digits.push(2),
-    //             '-' => digits.push(-1),
-    //             '=' => digits.push(-2),
-    //             _ => panic!("Bad character in input file line!"),
-    //         }
-    //     }
-    // }
-    // output
 }
 
 /// Solves AOC 2022 Day 25 Part 1 // Determines the SNAFU number that needs to be supplied to Bob's
@@ -87,9 +68,9 @@ fn solve_part1(snafu_numbers: &[String]) -> String {
     convert_decimal_to_snafu(snafu_sum)
 }
 
-/// Solves AOC 2022 Day 25 Part 2 // ###
+/// Solves AOC 2022 Day 25 Part 2 // Christmas is saved!
 fn solve_part2(_input: &[String]) -> bool {
-    false
+    true
 }
 
 /// Converts the given decimal value into the equivalent SNAFU string representation.
@@ -116,7 +97,7 @@ fn convert_snafu_number_to_decimal(snafu_number: &str) -> i64 {
             '0' => (),
             '1' => snafu_decimal += place,
             '2' => snafu_decimal += place * 2,
-            '-' => snafu_decimal += place * -1,
+            '-' => snafu_decimal += -place,
             '=' => snafu_decimal += place * -2,
             _ => panic!("Bad character in input file line!"),
         }
@@ -141,9 +122,8 @@ mod test {
     #[test]
     fn test_day25_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert!(solution);
     }
 
     /// Tests the Day 25 Part 1 solver method against example input 001.
