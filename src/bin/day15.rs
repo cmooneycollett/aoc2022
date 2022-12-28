@@ -84,7 +84,7 @@ fn solve_part1(input: &[(Point2D, Point2D)]) -> usize {
     let beacons_in_target_row = input
         .iter()
         .map(|x| x.1)
-        .filter(|x| x.get_y() == PART1_TARGET_ROW)
+        .filter(|x| x.y() == PART1_TARGET_ROW)
         .collect::<HashSet<Point2D>>();
     for (loc_sens, loc_beac) in input {
         let output = find_beacon_exclusion_locations_in_row(loc_sens, loc_beac, PART1_TARGET_ROW);
@@ -105,12 +105,12 @@ fn solve_part2(input: &[(Point2D, Point2D)]) -> i64 {
         // Find the exclusion zones in the current row from the sensors
         for (loc_sens, loc_beac) in input {
             let mdist = loc_sens.calculate_manhattan_distance(loc_beac) as i64;
-            let delta_y = (loc_sens.get_y() - y).abs();
+            let delta_y = (loc_sens.y() - y).abs();
             if delta_y > mdist {
                 continue;
             }
-            let min_x = loc_sens.get_x() - mdist + delta_y;
-            let max_x = loc_sens.get_x() + mdist - delta_y;
+            let min_x = loc_sens.x() - mdist + delta_y;
+            let max_x = loc_sens.x() + mdist - delta_y;
             // Skip if the x value is outside the search area
             if min_x > PART2_ROW_LIMIT || max_x < 0 {
                 continue;
@@ -148,9 +148,9 @@ fn find_beacon_exclusion_locations_in_row(
     target_row: i64,
 ) -> HashSet<Point2D> {
     let m_dist = loc_sens.calculate_manhattan_distance(loc_beac) as i64;
-    let delta_y = (loc_sens.get_y() - target_row).abs();
+    let delta_y = (loc_sens.y() - target_row).abs();
     let mut output: HashSet<Point2D> = HashSet::new();
-    for x in (loc_sens.get_x() - m_dist + delta_y)..=(loc_sens.get_x() + m_dist - delta_y) {
+    for x in (loc_sens.x() - m_dist + delta_y)..=(loc_sens.x() + m_dist - delta_y) {
         output.insert(Point2D::new(x, target_row));
     }
     output

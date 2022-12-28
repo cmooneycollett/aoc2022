@@ -181,17 +181,17 @@ fn conduct_rock_simulation(jet_chars: &[char], num_rocks: i64) -> Vec<CaveState>
             let mut has_collision = false;
             let mut new_rock: HashSet<Point2D> = HashSet::new();
             for tile in rock.iter() {
-                if rock_locations.contains(&tile.check_move_point(0, -1)) {
+                if rock_locations.contains(&tile.peek_move_point(0, -1)) {
                     has_collision = true;
                     break;
                 }
-                new_rock.insert(tile.check_move_point(0, -1));
+                new_rock.insert(tile.peek_move_point(0, -1));
             }
             // Check if the rock cannot move down
             if !has_collision {
                 rock = new_rock;
             } else {
-                let new_rock_max_height = rock.iter().map(|point| point.get_y()).max().unwrap();
+                let new_rock_max_height = rock.iter().map(|point| point.y()).max().unwrap();
                 if new_rock_max_height > rock_max_y {
                     rock_max_y = new_rock_max_height;
                 }
@@ -214,11 +214,11 @@ fn handle_gas_jet_right(rock: &mut HashSet<Point2D>, rock_locations: &HashSet<Po
     let mut has_collision = false;
     let mut new_rock: HashSet<Point2D> = HashSet::new();
     for tile in rock.iter() {
-        if tile.get_x() == 6 || rock_locations.contains(&tile.check_move_point(1, 0)) {
+        if tile.x() == 6 || rock_locations.contains(&tile.peek_move_point(1, 0)) {
             has_collision = true;
             break;
         }
-        new_rock.insert(tile.check_move_point(1, 0));
+        new_rock.insert(tile.peek_move_point(1, 0));
     }
     if !has_collision {
         *rock = new_rock;
@@ -230,11 +230,11 @@ fn handle_gas_jet_left(rock: &mut HashSet<Point2D>, rock_locations: &HashSet<Poi
     let mut has_collision = false;
     let mut new_rock: HashSet<Point2D> = HashSet::new();
     for tile in rock.iter() {
-        if tile.get_x() == 0 || rock_locations.contains(&tile.check_move_point(-1, 0)) {
+        if tile.x() == 0 || rock_locations.contains(&tile.peek_move_point(-1, 0)) {
             has_collision = true;
             break;
         }
-        new_rock.insert(tile.check_move_point(-1, 0));
+        new_rock.insert(tile.peek_move_point(-1, 0));
     }
     if !has_collision {
         *rock = new_rock;
@@ -249,39 +249,39 @@ fn generate_new_rock(rock_type: RockType, y: i64) -> HashSet<Point2D> {
         RockType::RockHorizBar => {
             let root_tile = Point2D::new(2, y);
             output.insert(root_tile);
-            output.insert(root_tile.check_move_point(1, 0));
-            output.insert(root_tile.check_move_point(2, 0));
-            output.insert(root_tile.check_move_point(3, 0));
+            output.insert(root_tile.peek_move_point(1, 0));
+            output.insert(root_tile.peek_move_point(2, 0));
+            output.insert(root_tile.peek_move_point(3, 0));
         }
         RockType::RockCross => {
             let root_tile = Point2D::new(3, y + 2);
             output.insert(root_tile);
-            output.insert(root_tile.check_move_point(-1, -1));
-            output.insert(root_tile.check_move_point(0, -1));
-            output.insert(root_tile.check_move_point(1, -1));
-            output.insert(root_tile.check_move_point(0, -2));
+            output.insert(root_tile.peek_move_point(-1, -1));
+            output.insert(root_tile.peek_move_point(0, -1));
+            output.insert(root_tile.peek_move_point(1, -1));
+            output.insert(root_tile.peek_move_point(0, -2));
         }
         RockType::RockL => {
             let root_tile = Point2D::new(2, y);
             output.insert(root_tile);
-            output.insert(root_tile.check_move_point(1, 0));
-            output.insert(root_tile.check_move_point(2, 0));
-            output.insert(root_tile.check_move_point(2, 1));
-            output.insert(root_tile.check_move_point(2, 2));
+            output.insert(root_tile.peek_move_point(1, 0));
+            output.insert(root_tile.peek_move_point(2, 0));
+            output.insert(root_tile.peek_move_point(2, 1));
+            output.insert(root_tile.peek_move_point(2, 2));
         }
         RockType::RockVertBar => {
             let root_tile = Point2D::new(2, y);
             output.insert(root_tile);
-            output.insert(root_tile.check_move_point(0, 1));
-            output.insert(root_tile.check_move_point(0, 2));
-            output.insert(root_tile.check_move_point(0, 3));
+            output.insert(root_tile.peek_move_point(0, 1));
+            output.insert(root_tile.peek_move_point(0, 2));
+            output.insert(root_tile.peek_move_point(0, 3));
         }
         RockType::RockSquare => {
             let root_tile = Point2D::new(2, y);
             output.insert(root_tile);
-            output.insert(root_tile.check_move_point(1, 0));
-            output.insert(root_tile.check_move_point(0, 1));
-            output.insert(root_tile.check_move_point(1, 1));
+            output.insert(root_tile.peek_move_point(1, 0));
+            output.insert(root_tile.peek_move_point(0, 1));
+            output.insert(root_tile.peek_move_point(1, 1));
         }
     }
     output

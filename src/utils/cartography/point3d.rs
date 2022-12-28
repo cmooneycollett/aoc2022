@@ -13,7 +13,7 @@ impl Point3D {
     }
 
     /// Gets the value of the x-coordinate.
-    pub fn get_x(&self) -> i64 {
+    pub fn x(&self) -> i64 {
         self.x
     }
 
@@ -23,7 +23,7 @@ impl Point3D {
     }
 
     /// Gets the value of the y-coordinate.
-    pub fn get_y(&self) -> i64 {
+    pub fn y(&self) -> i64 {
         self.y
     }
 
@@ -33,7 +33,7 @@ impl Point3D {
     }
 
     /// Gets the value of the z-coordinate.
-    pub fn get_z(&self) -> i64 {
+    pub fn z(&self) -> i64 {
         self.z
     }
 
@@ -50,7 +50,7 @@ impl Point3D {
     }
 
     /// Returns the Point3D after the current point is moved by the specified x- and y-deltas.
-    pub fn check_move_point(&self, dx: i64, dy: i64, dz: i64) -> Point3D {
+    pub fn peek_move_point(&self, dx: i64, dy: i64, dz: i64) -> Point3D {
         Point3D::new(self.x + dx, self.y + dy, self.z + dz)
     }
 
@@ -59,5 +59,17 @@ impl Point3D {
         (self.x - other.x).unsigned_abs()
             + (self.y - other.y).unsigned_abs()
             + (self.z - other.z).unsigned_abs()
+    }
+
+    /// Gets the points adjacent to the given cube (not including diagonals).
+    pub fn get_adjacent_points(&self) -> Vec<Point3D> {
+        vec![
+            self.peek_move_point(-1, 0, 0), // -dx
+            self.peek_move_point(1, 0, 0),  // +dx
+            self.peek_move_point(0, -1, 0), // -dy
+            self.peek_move_point(0, 1, 0),  // +dy
+            self.peek_move_point(0, 0, -1), // -dz
+            self.peek_move_point(0, 0, 1),  // +dz
+        ]
     }
 }

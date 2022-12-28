@@ -112,31 +112,31 @@ fn solve_part2(input: &HashMap<Point2D, TileType>) -> usize {
 /// of sand that come to rest.
 fn simulate_cave_sand_falling(input: &HashMap<Point2D, TileType>, include_floor: bool) -> usize {
     let mut cave_map = input.clone();
-    let max_y = cave_map.keys().map(|loc| loc.get_y()).max().unwrap();
+    let max_y = cave_map.keys().map(|loc| loc.y()).max().unwrap();
     let sand_origin = Point2D::new(500, 0);
     loop {
         let mut sand_loc = sand_origin;
         let mut reached_base_case = false;
         loop {
             // Check if the sand is in the abyss
-            if !include_floor && sand_loc.get_y() > max_y {
+            if !include_floor && sand_loc.y() > max_y {
                 reached_base_case = true;
                 break;
             }
-            if include_floor && sand_loc.get_y() == max_y + 1 {
+            if include_floor && sand_loc.y() == max_y + 1 {
                 cave_map.insert(sand_loc, TileType::Sand);
                 break;
             }
             // Check where the sand moves to
-            if !cave_map.contains_key(&sand_loc.check_move_point(0, 1)) {
+            if !cave_map.contains_key(&sand_loc.peek_move_point(0, 1)) {
                 // Try to move directly down
                 sand_loc.move_point(0, 1);
                 continue;
-            } else if !cave_map.contains_key(&sand_loc.check_move_point(-1, 1)) {
+            } else if !cave_map.contains_key(&sand_loc.peek_move_point(-1, 1)) {
                 // Try to move down diag left
                 sand_loc.move_point(-1, 1);
                 continue;
-            } else if !cave_map.contains_key(&sand_loc.check_move_point(1, 1)) {
+            } else if !cave_map.contains_key(&sand_loc.peek_move_point(1, 1)) {
                 // Try to move down diag right
                 sand_loc.move_point(1, 1);
                 continue;

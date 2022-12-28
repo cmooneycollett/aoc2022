@@ -14,7 +14,7 @@ impl Point2D {
     }
 
     /// Gets the value of the x-coordinate.
-    pub fn get_x(&self) -> i64 {
+    pub fn x(&self) -> i64 {
         self.x
     }
 
@@ -24,7 +24,7 @@ impl Point2D {
     }
 
     /// Gets the value of the y-coordinate.
-    pub fn get_y(&self) -> i64 {
+    pub fn y(&self) -> i64 {
         self.y
     }
 
@@ -39,22 +39,20 @@ impl Point2D {
     }
 
     /// Moves the point by the specified amount in the x- and y-directions.
-    pub fn move_point(&mut self, delta_x: i64, delta_y: i64) {
-        self.x += delta_x;
-        self.y += delta_y;
+    pub fn move_point(&mut self, dx: i64, dy: i64) {
+        self.x += dx;
+        self.y += dy;
     }
 
     /// Returns the Point2D after the current point is moved by the specified x- and y-deltas.
-    pub fn check_move_point(&self, delta_x: i64, delta_y: i64) -> Point2D {
-        let new_x = self.x + delta_x;
-        let new_y = self.y + delta_y;
-        Point2D { x: new_x, y: new_y }
+    pub fn peek_move_point(&self, dx: i64, dy: i64) -> Point2D {
+        Point2D::new(self.x + dx, self.y + dy)
     }
 
     /// Gets the eight surrounding points from the current location. Panics if integer overflow or
     /// underflow would occur.
     pub fn get_surrounding_points(&self) -> Vec<Point2D> {
-        let output: Vec<Point2D> = vec![
+        vec![
             Point2D::new(self.x, self.y - 1),     // up
             Point2D::new(self.x + 1, self.y - 1), // diag - up right
             Point2D::new(self.x + 1, self.y),     // right
@@ -63,8 +61,18 @@ impl Point2D {
             Point2D::new(self.x - 1, self.y + 1), // diag - down left
             Point2D::new(self.x - 1, self.y),     // left
             Point2D::new(self.x - 1, self.y - 1), // diag - up left
-        ];
-        output
+        ]
+    }
+
+    /// Gets the four points adjacent to the current location (excluding diagonals) - up, down,
+    /// left and right. Panics if integer overflow or underflow would occur.
+    pub fn get_adjacent_points(&self) -> Vec<Point2D> {
+        vec![
+            Point2D::new(self.x, self.y - 1), // up
+            Point2D::new(self.x + 1, self.y), // right
+            Point2D::new(self.x, self.y + 1), // down
+            Point2D::new(self.x - 1, self.y), // left
+        ]
     }
 
     /// Calculates the Manhattan distance between the current point and the other point.
@@ -75,14 +83,14 @@ impl Point2D {
     /// Gets the point in the given direction from the current point.
     pub fn check_move_in_direction(&self, dirn: CompassDirection) -> Point2D {
         match dirn {
-            CompassDirection::North => self.check_move_point(0, -1),
-            CompassDirection::NorthEast => self.check_move_point(1, -1),
-            CompassDirection::East => self.check_move_point(1, 0),
-            CompassDirection::SouthEast => self.check_move_point(1, 1),
-            CompassDirection::South => self.check_move_point(0, 1),
-            CompassDirection::SouthWest => self.check_move_point(-1, 1),
-            CompassDirection::West => self.check_move_point(-1, 0),
-            CompassDirection::NorthWest => self.check_move_point(-1, -1),
+            CompassDirection::North => self.peek_move_point(0, -1),
+            CompassDirection::NorthEast => self.peek_move_point(1, -1),
+            CompassDirection::East => self.peek_move_point(1, 0),
+            CompassDirection::SouthEast => self.peek_move_point(1, 1),
+            CompassDirection::South => self.peek_move_point(0, 1),
+            CompassDirection::SouthWest => self.peek_move_point(-1, 1),
+            CompassDirection::West => self.peek_move_point(-1, 0),
+            CompassDirection::NorthWest => self.peek_move_point(-1, -1),
         }
     }
 }
