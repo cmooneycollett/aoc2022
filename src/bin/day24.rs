@@ -102,9 +102,7 @@ fn process_input_file(filename: &str) -> ProblemInput {
 /// blizzards and reach the goal.
 fn solve_part1(problem_input: &ProblemInput) -> u64 {
     let (start_loc, end_loc, minmax, initial_blizzard_state) = problem_input;
-    let target_locs = VecDeque::from([
-        *end_loc,
-    ]);
+    let target_locs = VecDeque::from([*end_loc]);
     navigate_blizzard(start_loc, &target_locs, initial_blizzard_state, minmax).unwrap()
 }
 
@@ -112,9 +110,7 @@ fn solve_part1(problem_input: &ProblemInput) -> u64 {
 /// goal location, return to the start location, then reach the goal location again.
 fn solve_part2(problem_input: &ProblemInput) -> u64 {
     let (start_loc, end_loc, minmax, initial_blizzard_state) = problem_input;
-    let target_locs = VecDeque::from([
-        *end_loc, *start_loc, *end_loc,
-    ]);
+    let target_locs = VecDeque::from([*end_loc, *start_loc, *end_loc]);
     navigate_blizzard(start_loc, &target_locs, initial_blizzard_state, minmax).unwrap()
 }
 
@@ -143,7 +139,7 @@ fn navigate_blizzard(
             blizzard_state = update_blizzard_state(&blizzard_state, minmax);
         }
         let mut target_reached = false;
-        for next_loc in get_valid_next_locations(&loc, minmax, &blizzard_state, &minmax_exceptions) {
+        for next_loc in get_valid_next_locs(&loc, minmax, &blizzard_state, &minmax_exceptions) {
             // Check if the end location has been reached
             if next_loc == *target_locs.front().unwrap() {
                 target_reached = true;
@@ -182,7 +178,7 @@ fn generate_minmax_exceptions(
 }
 
 /// Gets the valid next locations from the current location.
-fn get_valid_next_locations(
+fn get_valid_next_locs(
     loc: &Point2D,
     minmax: &MinMax2D,
     blizzard_state: &BlizzardState,
