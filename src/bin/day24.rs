@@ -1,23 +1,17 @@
-use core::panic;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs;
 use std::time::Instant;
-use std::vec;
 
 use aoc2022::utils::cartography::{CardinalDirection, MinMax2D, Point2D};
 
 const PROBLEM_NAME: &str = "Blizzard Basin";
 const PROBLEM_INPUT_FILE: &str = "./input/day24.txt";
+// const PROBLEM_INPUT_FILE: &str = "./input/test/day24_t001.txt";
 const PROBLEM_DAY: u64 = 24;
 
 /// Type declaration to simply input parser and part solver function signatures.
-type ProblemInput = (
-    Point2D,
-    Point2D,
-    MinMax2D,
-    BlizzardState,
-);
+type ProblemInput = (Point2D, Point2D, MinMax2D, BlizzardState);
 
 /// Represents a blizzard map state.
 #[derive(Clone)]
@@ -108,40 +102,83 @@ fn process_input_file(filename: &str) -> ProblemInput {
 /// blizzards and reach the goal.
 fn solve_part1(problem_input: &ProblemInput) -> u64 {
     let (start_loc, end_loc, minmax, initial_blizzard_state) = problem_input;
+    let target_locs = VecDeque::from([
+        *end_loc,
+    ]);
+    navigate_blizzard(start_loc, &target_locs, initial_blizzard_state, minmax).unwrap()
+}
+
+/// Solves AOC 2022 Day 24 Part 2 // Determines the fewest number of minutes required to reach the
+/// goal location, return to the start location, then reach the goal location again.
+fn solve_part2(problem_input: &ProblemInput) -> u64 {
+    let (start_loc, end_loc, minmax, initial_blizzard_state) = problem_input;
+    let target_locs = VecDeque::from([
+        *end_loc, *start_loc, *end_loc,
+    ]);
+    navigate_blizzard(start_loc, &target_locs, initial_blizzard_state, minmax).unwrap()
+}
+
+/// Navigates the blizzard by aiming for the target locations. Return the fewest number of minutes
+/// required to visit each of the target locations in order.
+fn navigate_blizzard(
+    start_loc: &Point2D,
+    target_locs: &VecDeque<Point2D>,
+    initial_blizzard_state: &BlizzardState,
+    minmax: &MinMax2D,
+) -> Option<u64> {
     // Initialise the collection of locations that are exceptions to the minmax bounding area
-    let wall_openings: HashSet<Point2D> = HashSet::from([*start_loc, *end_loc]);
+    let minmax_exceptions: HashSet<Point2D> = generate_minmax_exceptions(start_loc, target_locs);
     let mut visit_queue: VecDeque<(u64, Point2D)> = VecDeque::from([(0, *start_loc)]);
+    let mut target_locs = target_locs.clone();
     // Initialise the blizzard state
     let mut blizzard_state = initial_blizzard_state.clone();
     // Track the different locations visited at different times
     let mut visited: HashSet<(u64, Point2D)> = HashSet::new();
     visited.insert((0, *start_loc));
-    // blizzard_state = update_blizzard_state(&blizzard_state, minmax);
-    while !visit_queue.is_empty() {
+    while !visit_queue.is_empty() && !target_locs.is_empty() {
         // Get the next location to visit
         let (minutes, loc) = visit_queue.pop_front().unwrap();
         // Update the blizzard state
         if blizzard_state.minutes == minutes {
             blizzard_state = update_blizzard_state(&blizzard_state, minmax);
         }
-        for next_loc in get_valid_next_locations(&loc, minmax, &blizzard_state, &wall_openings) {
+        let mut target_reached = false;
+        for next_loc in get_valid_next_locations(&loc, minmax, &blizzard_state, &minmax_exceptions) {
             // Check if the end location has been reached
-            if next_loc == *end_loc {
-                return minutes + 1;
+            if next_loc == *target_locs.front().unwrap() {
+                target_reached = true;
+                // Discard the visit queue when a target location is reached
+                target_locs.pop_front();
+                visit_queue = VecDeque::new();
+                visited = HashSet::new();
+                // The navigation is finished when there are no more target locations to visit
+                if target_locs.is_empty() {
+                    return Some(minutes + 1);
+                }
             }
+            // Check if the next location has not already been visited in the next minute
             let next_visit = (minutes + 1, next_loc);
             if !visited.contains(&next_visit) {
                 visit_queue.push_back(next_visit);
                 visited.insert(next_visit);
             }
+            // Skip other move options if a target location has been reached
+            if target_reached {
+                break;
+            }
         }
     }
-    panic!("Should not get here!");
+    None
 }
 
-/// Solves AOC 2022 Day 24 Part 2 // ###
-fn solve_part2(_input: &ProblemInput) -> u64 {
-    0
+fn generate_minmax_exceptions(
+    start_loc: &Point2D,
+    target_locs: &VecDeque<Point2D>,
+) -> HashSet<Point2D> {
+    let mut output = HashSet::new();
+    output.insert(*start_loc);
+    output.extend(target_locs);
+    output
 }
 
 /// Gets the valid next locations from the current location.
@@ -238,9 +275,8 @@ mod test {
     #[test]
     fn test_day24_part2_actual() {
         let input = process_input_file(PROBLEM_INPUT_FILE);
-        let _solution = solve_part2(&input);
-        unimplemented!();
-        // assert_eq!("###", solution);
+        let solution = solve_part2(&input);
+        assert_eq!(717, solution);
     }
 
     /// Tests the Day 24 Part 1 solver method against example input 001.
@@ -249,5 +285,13 @@ mod test {
         let input = process_input_file("./input/test/day24_t001.txt");
         let solution = solve_part1(&input);
         assert_eq!(18, solution);
+    }
+
+    /// Tests the Day 24 Part 2 solver method against example input 001.
+    #[test]
+    fn test_day24_part2_t001() {
+        let input = process_input_file("./input/test/day24_t001.txt");
+        let solution = solve_part2(&input);
+        assert_eq!(54, solution);
     }
 }
